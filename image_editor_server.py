@@ -101,6 +101,36 @@ def init_database():
 # Run database initialization
 init_database()
 
+# --- Error Handlers ---
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle internal server errors with JSON response"""
+    logger.error(f"Internal server error: {error}")
+    return jsonify({
+        'success': False,
+        'error': 'Internal server error',
+        'error_code': 'SERVER_ERROR'
+    }), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Handle all unhandled exceptions with JSON response for API routes"""
+    logger.error(f"Unhandled exception: {e}")
+    import traceback
+    traceback.print_exc()
+    
+    # Check if this is an API request (JSON expected)
+    if request.path.startswith('/enhance') or request.path.startswith('/apply_filter'):
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'error_code': 'SERVER_ERROR'
+        }), 500
+    
+    # For non-API routes, re-raise the exception
+    raise e
+
 # --- Core Image Fetching and Decoding Logic ---
 
 def decode_base64_image(image_data):
@@ -272,7 +302,16 @@ def enhance_route():
     Returns: enhanced image as base64 with metadata
     """
     try:
+        logger.info("Enhancement request received")
         data = request.json
+        
+        if data is None:
+            logger.error("No JSON data received")
+            return jsonify({
+                'success': False,
+                'error': 'No JSON data received',
+                'error_code': 'INVALID_INPUT'
+            }), 400
         
         # Extract parameters
         image_data = data.get('image_data')
