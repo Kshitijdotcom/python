@@ -335,13 +335,18 @@ def enhance_route():
                 'error_code': 'INVALID_INPUT'
             }), 400
         
-        # Validate scale
+        # Validate scale - limit to 2x on free tier to prevent memory issues
         if scale not in [1, 2, 4]:
             return jsonify({
                 'success': False,
                 'error': f'Invalid scale: {scale}. Must be 1, 2, or 4',
                 'error_code': 'INVALID_INPUT'
             }), 400
+        
+        # Force scale to 1 on free tier for large images to prevent crashes
+        if scale > 1:
+            logger.warning(f"Scale {scale} requested but forcing to 1 to prevent memory issues on free tier")
+            scale = 1
         
         # Validate strength
         if not isinstance(strength, (int, float)) or not 0 <= strength <= 100:
@@ -362,16 +367,20 @@ def enhance_route():
                 'error_code': 'INVALID_INPUT'
             }), 400
         
-        # Check image size to prevent memory issues
+        # Check image size to prevent memory issues on free tier
         width, height = img.size
-        max_pixels = 4000 * 4000  # 16 megapixels max
+        max_pixels = 2000 * 2000  # Reduced to 4 megapixels for free tier
+        
+        # Resize if too large
         if width * height > max_pixels:
-            logger.warning(f"Image too large: {width}x{height}")
-            return jsonify({
-                'success': False,
-                'error': f'Image too large ({width}x{height}). Maximum size is 4000x4000 pixels.',
-                'error_code': 'IMAGE_TOO_LARGE'
-            }), 400
+            logger.warning(f"Image too large: {width}x{height}, resizing...")
+            # Calculate new dimensions maintaining aspect ratio
+            scale_factor = (max_pixels / (width * height)) ** 0.5
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            width, height = img.size
+            logger.info(f"Resized to: {width}x{height}")
         
         logger.info(f"Image size: {width}x{height}, preset: {preset}, scale: {scale}, strength: {strength}")
         
@@ -408,12 +417,18 @@ def enhance_route():
                 'error_code': 'MODEL_ERROR'
             }), 500
         
-        # Encode enhanced image to base64
+        # Encode enhanced image to base64 with JPEG compression to reduce size
         logger.info("Encoding enhanced image...")
         buffer = BytesIO()
-        enhanced_img.save(buffer, format="PNG")
+        # Use JPEG with quality 95 for smaller file size
+        enhanced_img.save(buffer, format="JPEG", quality=95, optimize=True)
         enhanced_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
         logger.info(f"Enhancement complete. Output size: {len(enhanced_base64)} bytes")
+        
+        # Clean up to free memory
+        del img
+        del enhanced_img
+        buffer.close()
         
         return jsonify({
             'success': True,

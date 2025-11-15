@@ -1006,8 +1006,8 @@
                 
                 clearTimeout(timeoutId);
                 
-                // Update image with enhanced version
-                const enhancedImageData = 'data:image/png;base64,' + result.enhanced_image_base64;
+                // Update image with enhanced version (server returns JPEG)
+                const enhancedImageData = 'data:image/jpeg;base64,' + result.enhanced_image_base64;
                 enhancementState.enhancedImage = enhancedImageData;
                 mainEditorImage.src = enhancedImageData;
                 
