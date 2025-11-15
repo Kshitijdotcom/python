@@ -874,6 +874,10 @@
         
         async function enhanceImage(imageData, preset, scale, strength) {
             try {
+                // Create abort controller for timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
+                
                 const response = await fetch('/enhance', {
                     method: 'POST',
                     headers: {
@@ -884,10 +888,25 @@
                         preset: preset,
                         scale: scale,
                         strength: strength
-                    })
+                    }),
+                    signal: controller.signal
                 });
                 
-                const result = await response.json();
+                clearTimeout(timeoutId);
+                
+                // Check if response is ok
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                // Try to parse JSON
+                let result;
+                try {
+                    result = await response.json();
+                } catch (jsonError) {
+                    console.error('JSON parse error:', jsonError);
+                    throw new Error('Server returned invalid response. The image might be too large.');
+                }
                 
                 if (!result.success) {
                     throw new Error(result.error || 'Enhancement failed');
@@ -896,6 +915,9 @@
                 return result;
             } catch (error) {
                 console.error('Enhancement API error:', error);
+                if (error.name === 'AbortError') {
+                    throw new Error('Enhancement timed out. Try a smaller image or lower scale.');
+                }
                 throw error;
             }
         }
@@ -949,10 +971,25 @@
                 // Get current image as base64
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-                canvas.width = mainEditorImage.naturalWidth;
-                canvas.height = mainEditorImage.naturalHeight;
-                ctx.drawImage(mainEditorImage, 0, 0);
-                const imageData = canvas.toDataURL('image/png');
+                
+                let width = mainEditorImage.naturalWidth;
+                let height = mainEditorImage.naturalHeight;
+                
+                // Compress large images for mobile to prevent timeout
+                const maxDimension = 3000; // Max 3000px on any side
+                if (width > maxDimension || height > maxDimension) {
+                    const scale = maxDimension / Math.max(width, height);
+                    width = Math.floor(width * scale);
+                    height = Math.floor(height * scale);
+                    console.log(`Resizing image from ${mainEditorImage.naturalWidth}x${mainEditorImage.naturalHeight} to ${width}x${height}`);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(mainEditorImage, 0, 0, width, height);
+                
+                // Use JPEG with quality 0.9 for better compression (smaller payload)
+                const imageData = canvas.toDataURL('image/jpeg', 0.9);
                 
                 // Show estimated time after 3 seconds
                 const timeoutId = setTimeout(() => {
