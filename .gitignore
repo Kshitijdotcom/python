@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+users.db
+
+# Large files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.zip
+*.tar.gz
+*.rar
+*.exe
+*.msi
+VSCodeUserSetup-x64-1.106.0.exe
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backups
+*.bak
+*_backup.*
+index_backup.html
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

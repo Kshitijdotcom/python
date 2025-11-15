@@ -35,6 +35,42 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# Initialize database on startup
+def init_database():
+    """Initialize or migrate database schema"""
+    with app.app_context():
+        import sqlite3
+        from pathlib import Path
+        
+        db_path = Path('instance/users.db')
+        
+        # Check if database exists and has correct schema
+        if db_path.exists():
+            try:
+                conn = sqlite3.connect(str(db_path))
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(user)")
+                columns = {col[1] for col in cursor.fetchall()}
+                conn.close()
+                
+                # Check if is_guest column exists
+                if 'is_guest' not in columns:
+                    logger.warning("Database schema outdated - recreating database")
+                    db_path.unlink()  # Delete old database
+                    db.create_all()
+                    logger.info("Database recreated with new schema")
+                else:
+                    logger.info("Database schema is up to date")
+            except Exception as e:
+                logger.error(f"Error checking database schema: {e}")
+                db.create_all()
+        else:
+            db.create_all()
+            logger.info("Database initialized")
+
+# Run database initialization
+init_database()
+
 # --- Core Image Fetching and Decoding Logic ---
 
 def decode_base64_image(image_data):
@@ -64,25 +100,31 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Login page"""
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password):
-            login_user(user)
-            logger.info(f"User {username} logged in successfully")
+    try:
+        if current_user.is_authenticated:
             return redirect(url_for('index'))
-        else:
-            with open('templates/login.html', 'r', encoding='utf-8') as f:
-                return render_template_string(f.read(), error='Invalid username or password')
-    
-    with open('templates/login.html', 'r', encoding='utf-8') as f:
-        return render_template_string(f.read())
+        
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+            
+            user = User.query.filter_by(username=username).first()
+            
+            if user and user.check_password(password):
+                login_user(user)
+                logger.info(f"User {username} logged in successfully")
+                return redirect(url_for('index'))
+            else:
+                with open('templates/login.html', 'r', encoding='utf-8') as f:
+                    return render_template_string(f.read(), error='Invalid username or password')
+        
+        with open('templates/login.html', 'r', encoding='utf-8') as f:
+            return render_template_string(f.read())
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Login error: {e}", 500
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -108,19 +150,25 @@ def register():
 @app.route('/guest', methods=['GET', 'POST'])
 def guest_login():
     """Login as guest"""
-    import uuid
-    guest_username = f"guest_{uuid.uuid4().hex[:8]}"
-    
-    # Create temporary guest user
-    guest = User(username=guest_username, is_guest=True)
-    guest.set_password(secrets.token_hex(16))
-    
-    db.session.add(guest)
-    db.session.commit()
-    
-    login_user(guest)
-    logger.info(f"Guest user created: {guest_username}")
-    return redirect(url_for('index'))
+    try:
+        import uuid
+        guest_username = f"guest_{uuid.uuid4().hex[:8]}"
+        
+        # Create temporary guest user
+        guest = User(username=guest_username, is_guest=True)
+        guest.set_password(secrets.token_hex(16))
+        
+        db.session.add(guest)
+        db.session.commit()
+        
+        login_user(guest)
+        logger.info(f"Guest user created: {guest_username}")
+        return redirect(url_for('index'))
+    except Exception as e:
+        logger.error(f"Guest login error: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Error creating guest user: {e}", 500
 
 @app.route('/logout')
 @login_required
@@ -284,11 +332,6 @@ def enhance_route():
 
 
 if __name__ == '__main__':
-    # Create database tables
-    with app.app_context():
-        db.create_all()
-        logger.info("Database initialized")
-    
     # host='0.0.0.0' allows access from any device on your network
     # For public access, consider using ngrok or deploying to a cloud service
     app.run(debug=True, host='0.0.0.0', port=5000)
