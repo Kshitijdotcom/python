@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Image Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: #0a0a0a;
+            --color-bg-secondary: #1a1a1a;
+            --color-bg-tertiary: #252525;
+            --color-accent: #c9a961;
+            --color-accent-hover: #d4b76e;
+            --color-text-light: #e8e8e8;
+            --color-text-dim: #888888;
+            --color-border: #2a2a2a;
+            --color-error: #e53935;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-container {
+            background-color: var(--color-bg-secondary);
+            border-radius: 16px;
+            padding: 48px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--color-border);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--color-text-light);
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: var(--color-text-dim);
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--color-text-dim);
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="email"] {
+            width: 100%;
+            padding: 14px 16px;
+            padding-right: 48px;
+            background-color: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            color: var(--color-text-light);
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(201, 169, 97, 0.1);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--color-text-dim);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 4px 8px;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-password:hover {
+            color: var(--color-accent);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--color-accent);
+            color: var(--color-bg-primary);
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--color-accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(201, 169, 97, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-light);
+            border: 1px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-bg-primary);
+            border-color: var(--color-accent);
+            transform: translateY(-2px);
+            box-shadow: none;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 24px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background-color: var(--color-border);
+        }
+
+        .divider span {
+            background-color: var(--color-bg-secondary);
+            padding: 0 16px;
+            position: relative;
+            color: var(--color-text-dim);
+            font-size: 0.85rem;
+        }
+
+        .toggle-form {
+            text-align: center;
+            margin-top: 24px;
+            color: var(--color-text-dim);
+            font-size: 0.9rem;
+        }
+
+        .toggle-form a {
+            color: var(--color-accent);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-form a:hover {
+            color: var(--color-accent-hover);
+        }
+
+        .error-message {
+            background-color: rgba(229, 57, 53, 0.1);
+            border: 1px solid var(--color-error);
+            color: var(--color-error);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .success-message {
+            background-color: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        #register-form {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>IMAGE EDITOR</h1>
+            <p>Professional photo editing tool</p>
+        </div>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        {% if success %}
+        <div class="success-message">{{ success }}</div>
+        {% endif %}
+
+        <!-- Login Form -->
+        <form id="login-form" method="POST" action="{{ url_for('login') }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('password')">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">Login</button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label for="reg-username">Username</label>
+                <input type="text" id="reg-username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="reg-email">Email (optional)</label>
+                <input type="email" id="reg-email" name="email">
+            </div>
+
+            <div class="form-group">
+                <label for="reg-password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="reg-password" name="password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('reg-password')">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn">Create Account</button>
+        </form>
+
+        <div class="divider"><span>OR</span></div>
+
+        <form method="POST" action="{{ url_for('guest_login') }}">
+            <button type="submit" class="btn btn-secondary">Continue as Guest</button>
+        </form>
+
+        <div class="toggle-form">
+            <span id="toggle-text">Don't have an account? <a href="#" id="toggle-link">Sign up</a></span>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const toggleLink = document.getElementById('toggle-link');
+        const toggleText = document.getElementById('toggle-text');
+        let isLogin = true;
+
+        toggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLogin = !isLogin;
+
+            if (isLogin) {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                toggleText.innerHTML = 'Don\'t have an account? <a href="#" id="toggle-link">Sign up</a>';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                toggleText.innerHTML = 'Already have an account? <a href="#" id="toggle-link">Login</a>';
+            }
+
+            // Re-attach event listener
+            document.getElementById('toggle-link').addEventListener('click', arguments.callee);
+        });
+
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+    </script>
+</body>
+</html>

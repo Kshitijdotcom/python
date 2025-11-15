@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoJS: Modern Image Editor</title>
+    <!-- Load Inter font for a clean, modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Sleek and elegant dark-mode design */
+        :root {
+            /* Premium Color Palette */
+            --color-bg-primary: #0a0a0a; /* Charcoal Black */
+            --color-bg-secondary: #1a1a1a; /* Deep Slate Gray */
+            --color-bg-tertiary: #252525; /* Lighter Slate */
+            --color-accent: #c9a961; /* Muted Gold */
+            --color-accent-hover: #d4b76e; /* Warm Copper */
+            --color-text-light: #e8e8e8;
+            --color-text-dim: #888888;
+            --color-text-dimmer: #555555;
+            --color-border: #2a2a2a;
+            --color-shadow: rgba(0, 0, 0, 0.8);
+
+            /* Image Variables */ 
+            --image-opacity: 1;
+            --image-brightness: 100%;
+            --image-contrast: 100%;
+            --image-grayscale: 0%;
+            --image-sepia: 0%;
+            --image-saturate: 100%;
+            --image-hue-rotate: 0deg;
+            --image-invert: 0%;
+            --image-blur: 0px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-light);
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+            letter-spacing: 0.3px;
+        }
+
+        /* --- LAYOUT CONTAINER --- */
+        .editor-layout {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* --- SIDEBAR CONTROLS --- */
+        .sidebar {
+            width: 320px;
+            background-color: var(--color-bg-secondary);
+            overflow-y: auto;
+            border-right: 1px solid var(--color-border);
+            box-shadow: 4px 0 20px var(--color-shadow);
+            flex-shrink: 0;
+            padding-bottom: 30px;
+        }
+
+        .header {
+            padding: 32px 24px;
+            background-color: var(--color-bg-secondary);
+            border-bottom: 1px solid var(--color-border);
+            text-align: left;
+            font-weight: 700;
+            font-size: 1.4rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--color-text-light);
+        }
+
+        /* Accordion Section Styles */
+        .control-section {
+            border-bottom: 1px solid var(--color-border);
+            margin: 0;
+        }
+
+        .section-header {
+            padding: 20px 24px;
+            cursor: pointer;
+            background-color: var(--color-bg-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            color: var(--color-text-dim);
+        }
+
+        .section-header:hover {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-light);
+        }
+
+        .section-header.active {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-accent);
+            border-left: 3px solid var(--color-accent);
+            padding-left: 21px;
+        }
+        
+        .section-header.active .arrow {
+            transform: rotate(180deg);
+            color: var(--color-accent);
+        }
+
+        .section-icon {
+            display: none;
+        }
+
+        .arrow {
+            font-size: 0.8rem;
+            transition: transform 0.3s ease, color 0.3s ease;
+            opacity: 0.6;
+        }
+
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            padding: 0 24px;
+            background-color: var(--color-bg-secondary);
+        }
+
+        .section-content.open {
+            max-height: 1000px; 
+            padding: 24px;
+        }
+
+        /* SLIDER GROUP STYLES */
+        .control-group {
+            margin-bottom: 20px;
+            padding: 0;
+            border-bottom: none;
+        }
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--color-text-dim);
+            margin-bottom: 10px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #444;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--color-accent);
+            border-radius: 50%;
+            cursor: grab;
+            box-shadow: 0 0 5px var(--color-accent);
+            transition: background 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #00e5ff;
+        }
+
+        .value-display {
+            min-width: 40px;
+            text-align: right;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-text-light);
+        }
+
+        /* Button Groups */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .style-button {
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-dim);
+            border: 1px solid var(--color-border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 500;
+            flex-grow: 1;
+            min-width: 80px;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        .style-button:hover {
+            background: var(--color-bg-primary);
+            color: var(--color-text-light);
+            border-color: var(--color-accent);
+        }
+
+        .style-button.active {
+            background: var(--color-accent);
+            color: var(--color-bg-primary);
+            border-color: var(--color-accent);
+            box-shadow: 0 4px 12px rgba(201, 169, 97, 0.4);
+            font-weight: 600;
+        }
+        
+        /* Input file button styling */
+        .upload-wrapper {
+            padding: 24px;
+            border-bottom: 1px solid var(--color-border);
+            text-align: center;
+        }
+        .upload-label {
+            display: inline-block;
+            background-color: var(--color-accent);
+            color: var(--color-bg-primary);
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(201, 169, 97, 0.3);
+            border: none;
+        }
+        .upload-label:hover {
+            background-color: var(--color-accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(201, 169, 97, 0.4);
+        }
+        .upload-label:active {
+            transform: translateY(0);
+        }
+        #image-upload {
+            display: none;
+        }
+        
+        /* Reset Button */
+        #reset-button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-dim);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+
+        #reset-button:hover {
+            background-color: #e53935;
+            color: white;
+            border-color: #e53935;
+        }
+
+        /* --- IMAGE EDITOR AREA --- */
+        .editor-area {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            position: relative;
+            overflow: auto;
+            background-color: var(--color-bg-primary);
+        }
+
+        #image-container {
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            width: 900px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--color-bg-tertiary);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px var(--color-shadow);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 2px dashed transparent;
+        }
+        
+        #image-container:hover {
+            border-color: var(--color-accent);
+        }
+        
+        #image-container.empty::before {
+            content: '';
+            display: none;
+        }
+        
+        #image-container.empty::after {
+            content: '';
+            display: none;
+        }
+
+        #editor-image, #original-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            user-select: none;
+            transition: filter 0.1s;
+        }
+        
+        #editor-image {
+            /* This is the visible image element */
+            width: 100%;
+            height: 100%;
+            filter: 
+                brightness(var(--image-brightness)) 
+                contrast(var(--image-contrast)) 
+                grayscale(var(--image-grayscale)) 
+                sepia(var(--image-sepia)) 
+                saturate(var(--image-saturate)) 
+                hue-rotate(var(--image-hue-rotate)) 
+                invert(var(--image-invert))
+                blur(var(--image-blur));
+            opacity: var(--image-opacity);
+        }
+
+        #original-image {
+            /* This is a hidden reference image for download canvas */
+            display: none;
+        }
+        
+        /* Spinner animation for loading */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .editor-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+            .editor-area {
+                height: 50vh;
+                padding: 10px;
+            }
+            #image-container {
+                width: 100%;
+                height: 100%;
+                min-height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-layout">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <div class="header">IMAGE EDITOR</div>
+            
+            <div class="upload-wrapper">
+                <input type="file" id="image-upload" accept="image/*">
+                <label for="image-upload" class="upload-label">
+                    Upload Image
+                </label>
+                <div style="margin-top: 10px; color: var(--color-text-dim); font-size: 0.85rem;">
+                    (Or press Ctrl+V to paste image)
+                </div>
+                <button id="reset-button">Reset All Adjustments</button>
+            </div>
+
+            <!-- Basic Adjustments -->
+            <div class="control-section" data-section-id="basic-adjustments">
+                <div class="section-header">
+                    <span>Basic Adjustments</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="section-content">
+                    
+                    <div class="control-group">
+                        <label for="brightness">Brightness</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="brightness" min="50" max="150" value="100" data-unit="%" data-css-var="--image-brightness">
+                            <span class="value-display">100%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="contrast">Contrast</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="contrast" min="50" max="150" value="100" data-unit="%" data-css-var="--image-contrast">
+                            <span class="value-display">100%</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="saturation">Saturation</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="saturation" min="50" max="150" value="100" data-unit="%" data-css-var="--image-saturate">
+                            <span class="value-display">100%</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="hue-rotate">Hue Rotate</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="hue-rotate" min="0" max="360" value="0" data-unit="deg" data-css-var="--image-hue-rotate">
+                            <span class="value-display">0deg</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="opacity">Opacity</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="opacity" min="0" max="1" step="0.01" value="1" data-unit="" data-css-var="--image-opacity">
+                            <span class="value-display">1</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Color Effects -->
+            <div class="control-section" data-section-id="color-effects">
+                <div class="section-header">
+                    <span>Color Effects</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="section-content">
+                    
+                    <!-- Quick Enhancement Buttons for Sharpening -->
+                    <div class="control-group">
+                        <label>Quick Enhancements (Sharpening Alternative)</label>
+                        <div class="button-group" id="quick-enhance-buttons">
+                            <!-- This button mimics sharpening by boosting contrast and saturation -->
+                            <button class="style-button" data-enhance="sharpen">Sharpen / Detail</button>
+                            <button class="style-button" data-enhance="vibrant">Vibrant Pop</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="grayscale">Grayscale</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="grayscale" min="0" max="100" value="0" data-unit="%" data-css-var="--image-grayscale">
+                            <span class="value-display">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="sepia">Sepia</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="sepia" min="0" max="100" value="0" data-unit="%" data-css-var="--image-sepia">
+                            <span class="value-display">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="invert">Invert</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="invert" min="0" max="100" value="0" data-unit="%" data-css-var="--image-invert">
+                            <span class="value-display">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label for="blur">Blur (Set to 0px to Deblur)</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="blur" min="0" max="10" value="0" data-unit="px" data-css-var="--image-blur">
+                            <span class="value-display">0px</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Enhancement -->
+            <div class="control-section" data-section-id="ai-enhancement">
+                <div class="section-header">
+                    <span>AI Tools</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="section-content">
+                    
+                    <div class="control-group">
+                        <label>Enhancement Preset</label>
+                        <div class="button-group" id="preset-buttons">
+                            <button class="style-button active" data-preset="general">General</button>
+                            <button class="style-button" data-preset="portrait">Portrait</button>
+                            <button class="style-button" data-preset="landscape">Landscape</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Upscale Factor</label>
+                        <div class="button-group" id="scale-buttons">
+                            <button class="style-button active" data-scale="1">1x (No Scale)</button>
+                            <button class="style-button" data-scale="2">2x</button>
+                            <button class="style-button" data-scale="4">4x</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="enhancement-strength">Enhancement Strength</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="enhancement-strength" min="0" max="100" value="80" data-unit="%">
+                            <span class="value-display">80%</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group" style="border-bottom: none;">
+                        <button id="ai-enhance-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
+                            AI Enhance
+                        </button>
+                        <div id="enhancement-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
+                            <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--color-accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span id="status-text" style="margin-left: 8px;">Processing...</span>
+                        </div>
+                        <div id="enhancement-error" style="display: none; text-align: center; color: #e53935; font-size: 0.85rem; margin-top: 10px; padding: 8px; background: rgba(229, 57, 53, 0.1); border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <div class="control-group" id="enhancement-controls" style="display: none; border-bottom: none;">
+                        <button id="compare-button" class="style-button" style="width: 100%; margin-bottom: 8px;">
+                            Compare Original
+                        </button>
+                        <button id="undo-enhancement-button" class="style-button" style="width: 100%; background: #e53935; border-color: #e53935;">
+                            Undo Enhancement
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Download Button -->
+            <div style="padding: 20px;">
+                <button id="download-button" class="upload-label" style="width: 100%;">Download Edited Image</button>
+                <a href="/logout" style="display: block; margin-top: 12px; text-align: center; padding: 12px; background-color: var(--color-bg-tertiary); color: var(--color-text-dim); text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.9rem; border: 1px solid var(--color-border); transition: all 0.3s ease;" onmouseover="this.style.backgroundColor='var(--color-bg-primary)'; this.style.borderColor='var(--color-accent)'; this.style.color='var(--color-text-light)';" onmouseout="this.style.backgroundColor='var(--color-bg-tertiary)'; this.style.borderColor='var(--color-border)'; this.style.color='var(--color-text-dim)';">Logout</a>
+            </div>
+            
+        </div>
+
+        <!-- Editor Area -->
+        <div class="editor-area">
+            <!-- This container holds the image and applies CSS filters -->
+            <div id="image-container">
+                <img id="editor-image" alt="Image being edited" 
+                    src="https://placehold.co/900x600/353535/FFFFFF?text=Upload+Image+or+Paste+(Ctrl+V)">
+                <!-- Hidden canvas for rendering image with filters before download -->
+                <canvas id="render-canvas" style="display: none;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL VARIABLES ---
+        let originalStyles = {};
+        const mainEditorImage = document.getElementById('editor-image');
+        const renderCanvas = document.getElementById('render-canvas');
+        const inputs = document.querySelectorAll('input[type="range"]'); 
+        const quickEnhanceButtons = document.querySelectorAll('#quick-enhance-buttons .style-button');
+        
+        // AI Enhancement state
+        const enhancementState = {
+            isProcessing: false,
+            originalImage: null,
+            enhancedImage: null,
+            currentPreset: 'general',
+            currentScale: 1,
+            currentStrength: 80,
+            compareMode: false
+        };
+        
+        // --- UTILITY FUNCTIONS ---
+        
+        // Helper function to update slider values and CSS based on preset
+        function applyFilterPreset(b, c, s, h, gr, sep, inv, bl) {
+            const filters = [
+                { id: 'brightness', val: b },
+                { id: 'contrast', val: c },
+                { id: 'saturation', val: s },
+                { id: 'hue-rotate', val: h },
+                { id: 'grayscale', val: gr },
+                { id: 'sepia', val: sep },
+                { id: 'invert', val: inv },
+                { id: 'blur', val: bl },
+                { id: 'opacity', val: 1 } // Always reset opacity to full for presets
+            ];
+
+            filters.forEach(filter => {
+                const input = document.getElementById(filter.id);
+                if (input) {
+                    input.value = filter.val;
+                    // Trigger the existing update handler to set the CSS variable and display text
+                    handleUpdate({ target: input });
+                }
+            });
+        }
+
+        // Caches the initial values of all editable properties on load
+        function cacheInitialStyles() {
+            inputs.forEach(input => {
+                const cssVar = input.dataset.cssVar;
+                const value = input.value;
+                const unit = input.dataset.unit || '';
+                
+                // Opacity needs special handling as it uses a factor of 1, not 0.01 like previous versions
+                const numericValue = parseFloat(value);
+                
+                // Store initial value
+                originalStyles[cssVar] = {
+                    value: value,
+                    unit: unit,
+                    defaultCSS: `${numericValue}${unit}`
+                };
+                
+                // Apply initial CSS var
+                document.documentElement.style.setProperty(cssVar, originalStyles[cssVar].defaultCSS);
+            });
+        }
+
+        // --- HANDLERS ---
+
+        // Handles all slider changes
+        function handleUpdate(e) {
+            const input = e.target;
+            const cssVar = input.dataset.cssVar;
+            
+            let value = parseFloat(input.value);
+            const unit = input.dataset.unit || '';
+            
+            let displayValue = `${value}${unit}`;
+
+            // Update the value display next to the slider
+            const displaySpan = input.closest('.slider-wrapper')?.querySelector('.value-display');
+            if (displaySpan) {
+                // If opacity, just show the number without %
+                displaySpan.textContent = (input.id === 'opacity') ? value.toFixed(2) : displayValue;
+            }
+            
+            // Apply the CSS variable
+            document.documentElement.style.setProperty(cssVar, displayValue);
+
+            // Remove active state from enhancement buttons if a manual slider is used
+            if(input.closest('#quick-enhance-buttons') === null) {
+                quickEnhanceButtons.forEach(btn => btn.classList.remove('active'));
+            }
+        }
+        
+        // Handles accordion functionality
+        function toggleSection(sectionId) {
+            const allSections = document.querySelectorAll('.control-section');
+            const targetSection = document.querySelector(`[data-section-id="${sectionId}"]`);
+            const targetContent = targetSection.querySelector('.section-content');
+            const targetHeader = targetSection.querySelector('.section-header');
+
+            allSections.forEach(section => {
+                const content = section.querySelector('.section-content');
+                const header = section.querySelector('.section-header');
+                
+                if (section.dataset.sectionId !== sectionId || !header.classList.contains('active')) {
+                    // Close other sections
+                    content.classList.remove('open');
+                    header.classList.remove('active');
+                }
+            });
+            
+            // Toggle the target section
+            if (targetHeader.classList.contains('active')) {
+                // If it was open, close it
+                targetContent.classList.remove('open');
+                targetHeader.classList.remove('active');
+            } else {
+                // If it was closed, open it
+                targetContent.classList.add('open');
+                targetHeader.classList.add('active');
+            }
+        }
+
+        // Resets all sliders to default
+        function resetAdjustments() {
+            // Reset sliders
+            inputs.forEach(input => {
+                const cssVar = input.dataset.cssVar;
+                const defaultProps = originalStyles[cssVar];
+                
+                if (!defaultProps) return;
+
+                // Reset input value
+                input.value = defaultProps.value;
+
+                // Update display and CSS var
+                const displaySpan = input.closest('.slider-wrapper')?.querySelector('.value-display');
+                if (displaySpan) {
+                     // Handle opacity display separately
+                    displaySpan.textContent = (input.id === 'opacity') ? parseFloat(defaultProps.value).toFixed(2) : defaultProps.defaultCSS;
+                }
+                
+                document.documentElement.style.setProperty(cssVar, defaultProps.defaultCSS);
+            });
+
+            // Reset enhancement buttons
+            quickEnhanceButtons.forEach(btn => btn.classList.remove('active'));
+        }
+        
+        // Handles file upload
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imageUrl = event.target.result;
+                    loadImage(imageUrl);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Handles image pasting from clipboard
+        function handlePaste(e) {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        loadImage(event.target.result);
+                    };
+                    reader.readAsDataURL(blob);
+                    e.preventDefault(); // Prevent default paste action
+                    break;
+                }
+            }
+        }
+        
+        // Common function to load image into editor
+        function loadImage(imageUrl) {
+            const container = document.getElementById('image-container');
+            // Temporarily dim editor while loading
+            container.style.opacity = '0.5'; 
+            
+            // Reset all adjustments upon new image load
+            resetAdjustments();
+
+            mainEditorImage.onload = () => {
+                container.style.opacity = '1';
+                container.classList.remove('empty');
+                console.log("Image loaded successfully.");
+            };
+            
+            mainEditorImage.onerror = () => {
+                console.error("Error loading image. Check URL or file integrity.");
+                document.getElementById('image-container').style.opacity = '1';
+                // Fallback to placeholder on error
+                mainEditorImage.src = 'https://placehold.co/900x600/FF0000/FFFFFF?text=Image+Load+Failed';
+            };
+            
+            // For cross-origin issues with canvas download, we remove the attribute for local files (like pasted/uploaded).
+            // If the URL is external, we would need to check if CORS is enabled, but for local data URLs, it's fine.
+            mainEditorImage.removeAttribute('crossOrigin');
+
+            // Set the display image source
+            mainEditorImage.src = imageUrl;
+        }
+        
+        // Handles Quick Enhancement button clicks
+        function handleQuickEnhance(e) {
+            const button = e.target;
+            const type = button.dataset.enhance;
+
+            // Remove active state from all buttons in the group
+            quickEnhanceButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Toggle logic
+            if (button.classList.contains('active')) {
+                // If it was active, deselect and reset filters
+                button.classList.remove('active');
+                resetAdjustments(); // Safer to reset all when toggling off
+                return;
+            }
+
+            // Apply new preset
+            button.classList.add('active');
+
+            if (type === 'sharpen') {
+                // Sharpen preset: High Contrast and Saturation boost mimics sharpness
+                applyFilterPreset(105, 125, 125, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
+            } else if (type === 'vibrant') {
+                // Vibrant preset: Slight boost to Brightness, Saturation, and a touch of Contrast
+                applyFilterPreset(110, 105, 150, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
+            }
+        }
+
+        // Handles image download by drawing the filtered image onto a canvas
+        function downloadImage() {
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                 // Use a custom alert message substitute
+                 const container = document.getElementById('image-container');
+                 const msg = document.createElement('div');
+                 msg.textContent = 'Please upload or paste an image first!';
+                 msg.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #e53935; color: white; padding: 15px; border-radius: 8px; z-index: 100; font-weight: bold; animation: fadeout 3s forwards;';
+                 
+                 // Add a simple CSS animation for the message fade
+                 const style = document.createElement('style');
+                 style.textContent = '@keyframes fadeout { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }';
+                 document.head.appendChild(style);
+                 
+                 container.appendChild(msg);
+                 setTimeout(() => { msg.remove(); }, 3000);
+                 return;
+            }
+
+            // 1. Set canvas size to the natural image dimensions
+            renderCanvas.width = mainEditorImage.naturalWidth;
+            renderCanvas.height = mainEditorImage.naturalHeight;
+            const ctx = renderCanvas.getContext('2d');
+            
+            // 2. Clear canvas
+            ctx.clearRect(0, 0, renderCanvas.width, renderCanvas.height);
+            
+            // 3. Apply the current CSS filters to the canvas context
+            const currentFilter = getComputedStyle(mainEditorImage).filter;
+            const currentOpacity = getComputedStyle(mainEditorImage).opacity;
+            
+            ctx.filter = currentFilter;
+            ctx.globalAlpha = parseFloat(currentOpacity);
+
+            // 4. Draw the original image onto the canvas with filters applied
+            ctx.drawImage(mainEditorImage, 0, 0, renderCanvas.width, renderCanvas.height);
+
+            // 5. Create a download link
+            const link = document.createElement('a');
+            link.download = 'PhotoJS_Edited_Image.png';
+            link.href = renderCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // --- AI ENHANCEMENT FUNCTIONS ---
+        
+        async function enhanceImage(imageData, preset, scale, strength) {
+            try {
+                const response = await fetch('/enhance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image_data: imageData,
+                        preset: preset,
+                        scale: scale,
+                        strength: strength
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Enhancement failed');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('Enhancement API error:', error);
+                throw error;
+            }
+        }
+        
+        function showEnhancementStatus(message) {
+            const statusDiv = document.getElementById('enhancement-status');
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = message;
+            statusDiv.style.display = 'block';
+            document.getElementById('enhancement-error').style.display = 'none';
+        }
+        
+        function hideEnhancementStatus() {
+            document.getElementById('enhancement-status').style.display = 'none';
+        }
+        
+        function showEnhancementError(message) {
+            const errorDiv = document.getElementById('enhancement-error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            hideEnhancementStatus();
+        }
+        
+        function hideEnhancementError() {
+            document.getElementById('enhancement-error').style.display = 'none';
+        }
+        
+        async function handleAIEnhance() {
+            if (enhancementState.isProcessing) return;
+            
+            // Check if image is loaded
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                showEnhancementError('Please upload or paste an image first!');
+                return;
+            }
+            
+            enhancementState.isProcessing = true;
+            const enhanceButton = document.getElementById('ai-enhance-button');
+            enhanceButton.disabled = true;
+            enhanceButton.style.opacity = '0.5';
+            
+            hideEnhancementError();
+            showEnhancementStatus('Processing...');
+            
+            // Store original image if not already stored
+            if (!enhancementState.originalImage) {
+                enhancementState.originalImage = mainEditorImage.src;
+            }
+            
+            try {
+                // Get current image as base64
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
+                const imageData = canvas.toDataURL('image/png');
+                
+                // Show estimated time after 3 seconds
+                const timeoutId = setTimeout(() => {
+                    showEnhancementStatus('Processing... This may take 10-30 seconds');
+                }, 3000);
+                
+                // Call enhancement API
+                const result = await enhanceImage(
+                    imageData,
+                    enhancementState.currentPreset,
+                    enhancementState.currentScale,
+                    enhancementState.currentStrength
+                );
+                
+                clearTimeout(timeoutId);
+                
+                // Update image with enhanced version
+                const enhancedImageData = 'data:image/png;base64,' + result.enhanced_image_base64;
+                enhancementState.enhancedImage = enhancedImageData;
+                mainEditorImage.src = enhancedImageData;
+                
+                // Show success message with processing time
+                const processingTime = result.metadata.processing_time;
+                showEnhancementStatus(`✓ Enhanced in ${processingTime}s`);
+                setTimeout(hideEnhancementStatus, 3000);
+                
+                // Show compare and undo buttons
+                document.getElementById('enhancement-controls').style.display = 'block';
+                
+                console.log('Enhancement metadata:', result.metadata);
+                
+            } catch (error) {
+                showEnhancementError(`Enhancement failed: ${error.message}`);
+            } finally {
+                enhancementState.isProcessing = false;
+                enhanceButton.disabled = false;
+                enhanceButton.style.opacity = '1';
+            }
+        }
+        
+        function handleCompareToggle() {
+            if (!enhancementState.originalImage || !enhancementState.enhancedImage) return;
+            
+            enhancementState.compareMode = !enhancementState.compareMode;
+            const compareButton = document.getElementById('compare-button');
+            
+            if (enhancementState.compareMode) {
+                mainEditorImage.src = enhancementState.originalImage;
+                compareButton.textContent = 'Show Enhanced';
+                compareButton.classList.add('active');
+            } else {
+                mainEditorImage.src = enhancementState.enhancedImage;
+                compareButton.textContent = 'Compare Original';
+                compareButton.classList.remove('active');
+            }
+        }
+        
+        function handleUndoEnhancement() {
+            if (!enhancementState.originalImage) return;
+            
+            mainEditorImage.src = enhancementState.originalImage;
+            enhancementState.enhancedImage = null;
+            enhancementState.originalImage = null;
+            enhancementState.compareMode = false;
+            
+            document.getElementById('enhancement-controls').style.display = 'none';
+            hideEnhancementStatus();
+            hideEnhancementError();
+        }
+
+        // --- EVENT LISTENERS & INITIALIZATION ---
+
+        function init() {
+            // Cache styles before any interaction
+            cacheInitialStyles();
+            
+            // Attach listeners to all sliders
+            inputs.forEach(input => {
+                input.addEventListener('input', handleUpdate);
+                input.addEventListener('change', handleUpdate); 
+            });
+
+            // Attach listeners for accordion headers
+            document.querySelectorAll('.section-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const sectionId = header.parentElement.dataset.sectionId;
+                    toggleSection(sectionId);
+                });
+            });
+            
+            // Attach listener for quick enhancement buttons
+            quickEnhanceButtons.forEach(btn => btn.addEventListener('click', handleQuickEnhance));
+
+            // File and Reset listeners
+            document.getElementById('image-upload').addEventListener('change', handleImageUpload);
+            document.getElementById('download-button').addEventListener('click', downloadImage);
+            document.getElementById('reset-button').addEventListener('click', resetAdjustments);
+            
+            // Paste listener for the entire document
+            document.addEventListener('paste', handlePaste);
+            
+            // AI Enhancement listeners
+            const presetButtons = document.querySelectorAll('#preset-buttons .style-button');
+            presetButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    presetButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    enhancementState.currentPreset = btn.dataset.preset;
+                });
+            });
+            
+            const scaleButtons = document.querySelectorAll('#scale-buttons .style-button');
+            scaleButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    scaleButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    enhancementState.currentScale = parseInt(btn.dataset.scale);
+                });
+            });
+            
+            const strengthSlider = document.getElementById('enhancement-strength');
+            strengthSlider.addEventListener('input', (e) => {
+                enhancementState.currentStrength = parseInt(e.target.value);
+                e.target.nextElementSibling.textContent = e.target.value + '%';
+            });
+            
+            document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
+            document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
+            document.getElementById('undo-enhancement-button').addEventListener('click', handleUndoEnhancement);
+            
+            // Initial setup to ensure the UI starts with the first section expanded
+            toggleSection('basic-adjustments');
+            
+            // Set empty state for image container
+            const container = document.getElementById('image-container');
+            if (mainEditorImage.src.includes('placehold.co')) {
+                container.classList.add('empty');
+            }
+        }
+
+        window.onload = init;
+
+    </script>
+</body>
+</html>
+
