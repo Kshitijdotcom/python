@@ -352,28 +352,56 @@ def enhance_route():
             }), 400
         
         # Decode image
+        logger.info("Decoding image...")
         img, error_message = decode_base64_image(image_data)
         if error_message:
+            logger.error(f"Image decode error: {error_message}")
             return jsonify({
                 'success': False,
                 'error': error_message,
                 'error_code': 'INVALID_INPUT'
             }), 400
         
+        # Check image size to prevent memory issues
+        width, height = img.size
+        max_pixels = 4000 * 4000  # 16 megapixels max
+        if width * height > max_pixels:
+            logger.warning(f"Image too large: {width}x{height}")
+            return jsonify({
+                'success': False,
+                'error': f'Image too large ({width}x{height}). Maximum size is 4000x4000 pixels.',
+                'error_code': 'IMAGE_TOO_LARGE'
+            }), 400
+        
+        logger.info(f"Image size: {width}x{height}, preset: {preset}, scale: {scale}, strength: {strength}")
+        
         # Get enhancement engine
+        logger.info("Getting enhancement engine...")
         engine = get_enhancement_engine()
         
         # Perform enhancement with timeout handling
         try:
+            logger.info("Starting enhancement process...")
             enhanced_img, metadata = engine.enhance(img, preset, scale, int(strength))
+            logger.info("Enhancement completed successfully")
         except TimeoutError:
+            logger.error("Enhancement timed out")
             return jsonify({
                 'success': False,
                 'error': 'Enhancement processing timed out (>60s)',
                 'error_code': 'TIMEOUT'
             }), 504
+        except MemoryError:
+            logger.error("Out of memory during enhancement")
+            return jsonify({
+                'success': False,
+                'error': 'Image too large to process. Try a smaller image or lower scale.',
+                'error_code': 'OUT_OF_MEMORY'
+            }), 507
         except Exception as e:
             logger.error(f"Enhancement error: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({
                 'success': False,
                 'error': f'Enhancement failed: {str(e)}',
@@ -381,9 +409,11 @@ def enhance_route():
             }), 500
         
         # Encode enhanced image to base64
+        logger.info("Encoding enhanced image...")
         buffer = BytesIO()
         enhanced_img.save(buffer, format="PNG")
         enhanced_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        logger.info(f"Enhancement complete. Output size: {len(enhanced_base64)} bytes")
         
         return jsonify({
             'success': True,
