@@ -39,34 +39,64 @@ def load_user(user_id):
 def init_database():
     """Initialize or migrate database schema"""
     with app.app_context():
-        import sqlite3
-        from pathlib import Path
-        
-        db_path = Path('instance/users.db')
-        
-        # Check if database exists and has correct schema
-        if db_path.exists():
-            try:
-                conn = sqlite3.connect(str(db_path))
-                cursor = conn.cursor()
-                cursor.execute("PRAGMA table_info(user)")
-                columns = {col[1] for col in cursor.fetchall()}
-                conn.close()
-                
-                # Check if is_guest column exists
-                if 'is_guest' not in columns:
-                    logger.warning("Database schema outdated - recreating database")
-                    db_path.unlink()  # Delete old database
+        try:
+            import sqlite3
+            from pathlib import Path
+            
+            db_path = Path('instance/users.db')
+            
+            # Check if database exists and has the user table
+            if db_path.exists():
+                try:
+                    conn = sqlite3.connect(str(db_path))
+                    cursor = conn.cursor()
+                    
+                    # Check if user table exists
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user'")
+                    table_exists = cursor.fetchone() is not None
+                    
+                    if table_exists:
+                        # Check if is_guest column exists
+                        cursor.execute("PRAGMA table_info(user)")
+                        columns = {col[1] for col in cursor.fetchall()}
+                        
+                        if 'is_guest' not in columns:
+                            logger.warning("Database schema outdated - recreating database")
+                            conn.close()
+                            db_path.unlink()  # Delete old database
+                            db.create_all()
+                            logger.info("Database recreated with new schema")
+                        else:
+                            logger.info("Database schema is up to date")
+                            conn.close()
+                    else:
+                        # Table doesn't exist, create it
+                        conn.close()
+                        db.create_all()
+                        logger.info("Database tables created")
+                except Exception as e:
+                    logger.error(f"Error checking database schema: {e}")
+                    try:
+                        conn.close()
+                    except:
+                        pass
+                    # Try to create tables anyway
                     db.create_all()
-                    logger.info("Database recreated with new schema")
-                else:
-                    logger.info("Database schema is up to date")
-            except Exception as e:
-                logger.error(f"Error checking database schema: {e}")
+                    logger.info("Database initialized after error")
+            else:
+                # Database doesn't exist, create it
                 db.create_all()
-        else:
-            db.create_all()
-            logger.info("Database initialized")
+                logger.info("Database initialized")
+        except Exception as e:
+            logger.error(f"Fatal error initializing database: {e}")
+            import traceback
+            traceback.print_exc()
+            # Last resort - just try to create tables
+            try:
+                db.create_all()
+                logger.info("Database created as fallback")
+            except Exception as e2:
+                logger.error(f"Could not create database: {e2}")
 
 # Run database initialization
 init_database()
