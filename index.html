@@ -512,6 +512,34 @@
                             <span class="value-display">0px</span>
                         </div>
                     </div>
+
+                    <div class="control-group">
+                        <label for="blur-strength">Background Blur Strength (Portrait Mode)</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="blur-strength" min="5" max="30" value="15" data-unit="">
+                            <span class="value-display">15</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group" style="border-bottom: none;">
+                        <button id="blur-background-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
+                            Blur Background
+                        </button>
+                        <div id="blur-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
+                            <span id="blur-status-text">Processing...</span>
+                        </div>
+                        <div id="blur-error" style="display: none; text-align: center; color: #e53935; font-size: 0.85rem; margin-top: 10px; padding: 8px; background: rgba(229, 57, 53, 0.1); border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <div class="control-group" id="blur-controls" style="display: none; border-bottom: none;">
+                        <button id="blur-compare-button" class="style-button" style="width: 100%; margin-bottom: 8px;">
+                            Compare Original
+                        </button>
+                        <button id="undo-blur-button" class="style-button" style="width: 100%; background: #e53935; border-color: #e53935;">
+                            Undo Blur
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -549,18 +577,7 @@
                         </div>
                     </div>
 
-                    <div class="control-group">
-                        <label for="blur-strength">Background Blur Strength</label>
-                        <div class="slider-wrapper">
-                            <input type="range" id="blur-strength" min="5" max="30" value="15" data-unit="">
-                            <span class="value-display">15</span>
-                        </div>
-                    </div>
-
                     <div class="control-group" style="border-bottom: none;">
-                        <button id="blur-background-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
-                            Blur Background (Portrait Mode)
-                        </button>
                         <button id="auto-enhance-button" class="upload-label" style="width: 100%; margin-bottom: 10px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover)); font-weight: 600;">
                             Auto Enhance
                         </button>
@@ -1164,6 +1181,36 @@
             }
         }
         
+        // Background Blur state
+        const blurState = {
+            originalImage: null,
+            blurredImage: null,
+            compareMode: false
+        };
+        
+        function showBlurStatus(message) {
+            const statusDiv = document.getElementById('blur-status');
+            const statusText = document.getElementById('blur-status-text');
+            statusText.textContent = message;
+            statusDiv.style.display = 'block';
+            document.getElementById('blur-error').style.display = 'none';
+        }
+        
+        function hideBlurStatus() {
+            document.getElementById('blur-status').style.display = 'none';
+        }
+        
+        function showBlurError(message) {
+            const errorDiv = document.getElementById('blur-error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            hideBlurStatus();
+        }
+        
+        function hideBlurError() {
+            document.getElementById('blur-error').style.display = 'none';
+        }
+        
         // Background Blur - Apply portrait mode style background blur
         async function handleBlurBackground() {
             if (enhancementState.isProcessing) return;
@@ -1175,12 +1222,12 @@
             blurButton.disabled = true;
             blurButton.style.opacity = '0.5';
             
-            hideEnhancementError();
-            showEnhancementStatus('Detecting subject and blurring background...');
+            hideBlurError();
+            showBlurStatus('Detecting subject and blurring background...');
             
             // Store original image if not already stored
-            if (!enhancementState.originalImage) {
-                enhancementState.originalImage = mainEditorImage.src;
+            if (!blurState.originalImage) {
+                blurState.originalImage = mainEditorImage.src;
             }
             
             try {
@@ -1239,28 +1286,55 @@
                 
                 // Update image with blurred version
                 const blurredImageData = 'data:image/jpeg;base64,' + result.blurred_image_base64;
-                enhancementState.enhancedImage = blurredImageData;
+                blurState.blurredImage = blurredImageData;
                 mainEditorImage.src = blurredImageData;
                 
                 // Show success message
                 const processingTime = result.metadata.processing_time;
-                showEnhancementStatus(`Background blurred in ${processingTime}s`);
-                setTimeout(hideEnhancementStatus, 3000);
+                showBlurStatus(`Background blurred in ${processingTime}s`);
+                setTimeout(hideBlurStatus, 3000);
                 
                 // Show compare and undo buttons
-                document.getElementById('enhancement-controls').style.display = 'block';
+                document.getElementById('blur-controls').style.display = 'block';
                 
             } catch (error) {
                 if (error.name === 'AbortError') {
-                    showEnhancementError('Background blur timed out. Try a smaller image.');
+                    showBlurError('Background blur timed out. Try a smaller image.');
                 } else {
-                    showEnhancementError(`Background blur failed: ${error.message}`);
+                    showBlurError(`Background blur failed: ${error.message}`);
                 }
             } finally {
                 enhancementState.isProcessing = false;
                 blurButton.disabled = false;
                 blurButton.style.opacity = '1';
             }
+        }
+        
+        function handleBlurCompare() {
+            if (!blurState.originalImage || !blurState.blurredImage) return;
+            
+            blurState.compareMode = !blurState.compareMode;
+            
+            if (blurState.compareMode) {
+                mainEditorImage.src = blurState.originalImage;
+                document.getElementById('blur-compare-button').textContent = 'Show Blurred';
+            } else {
+                mainEditorImage.src = blurState.blurredImage;
+                document.getElementById('blur-compare-button').textContent = 'Compare Original';
+            }
+        }
+        
+        function handleUndoBlur() {
+            if (!blurState.originalImage) return;
+            
+            mainEditorImage.src = blurState.originalImage;
+            blurState.blurredImage = null;
+            blurState.originalImage = null;
+            blurState.compareMode = false;
+            
+            document.getElementById('blur-controls').style.display = 'none';
+            hideBlurStatus();
+            hideBlurError();
         }
         
         // Auto Adjust - Automatically adjusts brightness, contrast, saturation based on image analysis
@@ -1469,6 +1543,8 @@
             });
             
             document.getElementById('blur-background-button').addEventListener('click', handleBlurBackground);
+            document.getElementById('blur-compare-button').addEventListener('click', handleBlurCompare);
+            document.getElementById('undo-blur-button').addEventListener('click', handleUndoBlur);
             document.getElementById('auto-adjust-button').addEventListener('click', handleAutoAdjust);
             document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
