@@ -246,6 +246,117 @@ def logout():
     logger.info(f"User {username} logged out")
     return redirect(url_for('login'))
 
+@app.route('/blur_background', methods=['POST'])
+@login_required
+def blur_background_route():
+    """
+    Apply background blur effect (portrait mode style)
+    Accepts: image_data (base64), blur_strength
+    Returns: blurred image as base64 with metadata
+    """
+    try:
+        logger.info("Background blur request received")
+        data = request.json
+        
+        if data is None:
+            logger.error("No JSON data received")
+            return jsonify({
+                'success': False,
+                'error': 'No JSON data received',
+                'error_code': 'INVALID_INPUT'
+            }), 400
+        
+        # Extract parameters
+        image_data = data.get('image_data')
+        blur_strength = data.get('blur_strength', 15)
+        
+        # Validate required fields
+        if not image_data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing image data',
+                'error_code': 'INVALID_INPUT'
+            }), 400
+        
+        # Validate blur strength
+        if not isinstance(blur_strength, (int, float)) or not 1 <= blur_strength <= 30:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid blur strength: {blur_strength}. Must be between 1 and 30',
+                'error_code': 'INVALID_INPUT'
+            }), 400
+        
+        # Decode image
+        logger.info("Decoding image...")
+        img, error_message = decode_base64_image(image_data)
+        if error_message:
+            logger.error(f"Image decode error: {error_message}")
+            return jsonify({
+                'success': False,
+                'error': error_message,
+                'error_code': 'INVALID_INPUT'
+            }), 400
+        
+        # Check image size
+        width, height = img.size
+        max_pixels = 2000 * 2000
+        if width * height > max_pixels:
+            logger.warning(f"Image too large: {width}x{height}, resizing...")
+            scale_factor = (max_pixels / (width * height)) ** 0.5
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            width, height = img.size
+            logger.info(f"Resized to: {width}x{height}")
+        
+        logger.info(f"Image size: {width}x{height}, blur_strength: {blur_strength}")
+        
+        # Get enhancement engine
+        logger.info("Getting enhancement engine...")
+        engine = get_enhancement_engine()
+        
+        # Apply background blur
+        try:
+            logger.info("Starting background blur...")
+            blurred_img, metadata = engine.blur_background(img, int(blur_strength))
+            logger.info("Background blur completed successfully")
+        except Exception as e:
+            logger.error(f"Background blur error: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'error': f'Background blur failed: {str(e)}',
+                'error_code': 'PROCESSING_ERROR'
+            }), 500
+        
+        # Encode result to base64 with JPEG compression
+        logger.info("Encoding result...")
+        buffer = BytesIO()
+        blurred_img.save(buffer, format="JPEG", quality=95, optimize=True)
+        result_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        logger.info(f"Background blur complete. Output size: {len(result_base64)} bytes")
+        
+        # Clean up
+        del img
+        del blurred_img
+        buffer.close()
+        
+        return jsonify({
+            'success': True,
+            'blurred_image_base64': result_base64,
+            'metadata': metadata
+        })
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in blur_background endpoint: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}',
+            'error_code': 'SERVER_ERROR'
+        }), 500
+
+
 @app.route('/apply_filter', methods=['POST'])
 @login_required
 def apply_filter_route():

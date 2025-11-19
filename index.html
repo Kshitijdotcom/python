@@ -549,7 +549,18 @@
                         </div>
                     </div>
 
+                    <div class="control-group">
+                        <label for="blur-strength">Background Blur Strength</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="blur-strength" min="5" max="30" value="15" data-unit="">
+                            <span class="value-display">15</span>
+                        </div>
+                    </div>
+
                     <div class="control-group" style="border-bottom: none;">
+                        <button id="blur-background-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
+                            Blur Background (Portrait Mode)
+                        </button>
                         <button id="auto-enhance-button" class="upload-label" style="width: 100%; margin-bottom: 10px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover)); font-weight: 600;">
                             Auto Enhance
                         </button>
@@ -1153,6 +1164,105 @@
             }
         }
         
+        // Background Blur - Apply portrait mode style background blur
+        async function handleBlurBackground() {
+            if (enhancementState.isProcessing) return;
+            
+            const blurButton = document.getElementById('blur-background-button');
+            const blurStrength = document.getElementById('blur-strength').value;
+            
+            enhancementState.isProcessing = true;
+            blurButton.disabled = true;
+            blurButton.style.opacity = '0.5';
+            
+            hideEnhancementError();
+            showEnhancementStatus('Detecting subject and blurring background...');
+            
+            // Store original image if not already stored
+            if (!enhancementState.originalImage) {
+                enhancementState.originalImage = mainEditorImage.src;
+            }
+            
+            try {
+                // Get current image as base64
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                let width = mainEditorImage.naturalWidth;
+                let height = mainEditorImage.naturalHeight;
+                
+                // Compress large images
+                const maxDimension = 2000;
+                if (width > maxDimension || height > maxDimension) {
+                    const scale = maxDimension / Math.max(width, height);
+                    width = Math.floor(width * scale);
+                    height = Math.floor(height * scale);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(mainEditorImage, 0, 0, width, height);
+                const imageData = canvas.toDataURL('image/jpeg', 0.9);
+                
+                // Call background blur API
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                
+                const response = await fetch('/blur_background', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image_data: imageData,
+                        blur_strength: parseInt(blurStrength)
+                    }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                let result;
+                try {
+                    result = await response.json();
+                } catch (jsonError) {
+                    throw new Error('Server returned invalid response');
+                }
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Background blur failed');
+                }
+                
+                // Update image with blurred version
+                const blurredImageData = 'data:image/jpeg;base64,' + result.blurred_image_base64;
+                enhancementState.enhancedImage = blurredImageData;
+                mainEditorImage.src = blurredImageData;
+                
+                // Show success message
+                const processingTime = result.metadata.processing_time;
+                showEnhancementStatus(`Background blurred in ${processingTime}s`);
+                setTimeout(hideEnhancementStatus, 3000);
+                
+                // Show compare and undo buttons
+                document.getElementById('enhancement-controls').style.display = 'block';
+                
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    showEnhancementError('Background blur timed out. Try a smaller image.');
+                } else {
+                    showEnhancementError(`Background blur failed: ${error.message}`);
+                }
+            } finally {
+                enhancementState.isProcessing = false;
+                blurButton.disabled = false;
+                blurButton.style.opacity = '1';
+            }
+        }
+        
         // Auto Adjust - Automatically adjusts brightness, contrast, saturation based on image analysis
         function handleAutoAdjust() {
             try {
@@ -1358,9 +1468,15 @@
                 e.target.nextElementSibling.textContent = e.target.value + '%';
             });
             
+            document.getElementById('blur-background-button').addEventListener('click', handleBlurBackground);
             document.getElementById('auto-adjust-button').addEventListener('click', handleAutoAdjust);
             document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
+            
+            // Blur strength slider update
+            document.getElementById('blur-strength').addEventListener('input', function() {
+                this.nextElementSibling.textContent = this.value;
+            });
             document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
             document.getElementById('undo-enhancement-button').addEventListener('click', handleUndoEnhancement);
             

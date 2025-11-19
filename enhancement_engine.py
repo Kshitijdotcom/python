@@ -23,6 +23,69 @@ class EnhancementEngine:
         """Initialize the enhancement engine"""
         logger.info("Enhancement Engine initialized (PIL/OpenCV-based)")
     
+    def blur_background(self, image: Image.Image, blur_strength: int = 15) -> Tuple[Image.Image, dict]:
+        """
+        Apply background blur effect (portrait mode style)
+        Uses edge detection to identify subject and blur background
+        
+        Args:
+            image: PIL Image to process
+            blur_strength: Blur intensity (1-30)
+        
+        Returns:
+            Tuple of (blurred PIL Image, metadata dict)
+        """
+        start_time = time.time()
+        
+        try:
+            # Convert to RGB if needed
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Create edge detection mask to identify subject
+            # Subjects typically have more edges/details than backgrounds
+            edges = image.filter(ImageFilter.FIND_EDGES)
+            edges_gray = edges.convert('L')
+            
+            # Enhance edges to create better mask
+            enhancer = ImageEnhance.Contrast(edges_gray)
+            edges_enhanced = enhancer.enhance(3.0)
+            
+            # Threshold to create binary mask (subject vs background)
+            # Higher values = more area considered as subject
+            threshold = 30
+            mask = edges_enhanced.point(lambda x: 255 if x > threshold else 0)
+            
+            # Dilate mask to include more of the subject
+            mask = mask.filter(ImageFilter.MaxFilter(size=15))
+            
+            # Smooth mask edges for natural transition
+            mask = mask.filter(ImageFilter.GaussianBlur(radius=10))
+            
+            # Create blurred version of entire image
+            blurred = image.filter(ImageFilter.GaussianBlur(radius=blur_strength))
+            
+            # Composite: use original where mask is white (subject), blurred where black (background)
+            result = Image.composite(image, blurred, mask)
+            
+            processing_time = time.time() - start_time
+            
+            metadata = {
+                'processing_time': round(processing_time, 2),
+                'effect': 'background_blur',
+                'blur_strength': blur_strength,
+                'original_dimensions': [image.width, image.height],
+                'output_dimensions': [result.width, result.height]
+            }
+            
+            logger.info(f"Background blur complete in {processing_time:.2f}s")
+            
+            return result, metadata
+            
+        except Exception as e:
+            logger.error(f"Background blur error: {e}")
+            raise
+    
     def enhance(
         self, 
         image: Image.Image, 
