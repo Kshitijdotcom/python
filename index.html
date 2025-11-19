@@ -521,9 +521,17 @@
                         </div>
                     </div>
 
+                    <div class="control-group">
+                        <label>Blur Mode</label>
+                        <div class="button-group" id="blur-mode-buttons">
+                            <button class="style-button active" data-mode="inside">Blur Inside</button>
+                            <button class="style-button" data-mode="outside">Blur Outside</button>
+                        </div>
+                    </div>
+
                     <div class="control-group" style="border-bottom: none;">
                         <button id="start-selection-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
-                            Select Area to Blur
+                            Select Area
                         </button>
                         <button id="apply-selective-blur-button" class="upload-label" style="width: 100%; margin-bottom: 10px; display: none;">
                             Apply Blur to Selection
@@ -1186,7 +1194,8 @@
             endX: 0,
             endY: 0,
             selectionCanvas: null,
-            selectionCtx: null
+            selectionCtx: null,
+            blurMode: 'inside' // 'inside' or 'outside'
         };
         
         // Initialize selection canvas
@@ -1301,7 +1310,8 @@
         // Apply selective blur to selected area (client-side processing)
         async function handleApplySelectiveBlur() {
             try {
-                showEnhancementStatus('Applying blur to selected area...');
+                const mode = selectiveBlurState.blurMode;
+                showEnhancementStatus(mode === 'inside' ? 'Blurring selected area...' : 'Blurring background...');
                 
                 const blurStrength = document.getElementById('selective-blur-strength').value;
                 const img = mainEditorImage;
@@ -1322,17 +1332,34 @@
                 canvas.height = img.naturalHeight;
                 ctx.drawImage(img, 0, 0);
                 
-                // Get image data for selected region
-                const regionWidth = x2 - x1;
-                const regionHeight = y2 - y1;
-                const imageData = ctx.getImageData(x1, y1, regionWidth, regionHeight);
-                
-                // Apply blur using simple box blur algorithm
                 const blurRadius = parseInt(blurStrength);
-                const blurredData = applyBoxBlur(imageData, blurRadius);
                 
-                // Put blurred data back
-                ctx.putImageData(blurredData, x1, y1);
+                if (mode === 'inside') {
+                    // Blur only the selected region
+                    const regionWidth = x2 - x1;
+                    const regionHeight = y2 - y1;
+                    const imageData = ctx.getImageData(x1, y1, regionWidth, regionHeight);
+                    const blurredData = applyBoxBlur(imageData, blurRadius);
+                    ctx.putImageData(blurredData, x1, y1);
+                } else {
+                    // Blur everything EXCEPT the selected region
+                    // Get entire image data
+                    const fullImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const blurredFullData = applyBoxBlur(fullImageData, blurRadius);
+                    
+                    // Put blurred image
+                    ctx.putImageData(blurredFullData, 0, 0);
+                    
+                    // Draw original (sharp) selected region on top
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCanvas.width = img.naturalWidth;
+                    tempCanvas.height = img.naturalHeight;
+                    tempCtx.drawImage(img, 0, 0);
+                    
+                    const sharpRegion = tempCtx.getImageData(x1, y1, x2 - x1, y2 - y1);
+                    ctx.putImageData(sharpRegion, x1, y1);
+                }
                 
                 // Update image
                 const blurredImage = canvas.toDataURL('image/jpeg', 0.95);
@@ -1741,6 +1768,16 @@
             document.getElementById('start-selection-button').addEventListener('click', handleStartSelection);
             document.getElementById('cancel-selection-button').addEventListener('click', handleCancelSelection);
             document.getElementById('apply-selective-blur-button').addEventListener('click', handleApplySelectiveBlur);
+            
+            // Blur mode toggle
+            const blurModeButtons = document.querySelectorAll('#blur-mode-buttons .style-button');
+            blurModeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    blurModeButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    selectiveBlurState.blurMode = this.dataset.mode;
+                });
+            });
             document.getElementById('auto-adjust-button').addEventListener('click', handleAutoAdjust);
             document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
