@@ -26,7 +26,7 @@ class EnhancementEngine:
     def blur_background(self, image: Image.Image, blur_strength: int = 15) -> Tuple[Image.Image, dict]:
         """
         Apply background blur effect (portrait mode style)
-        Uses edge detection to identify subject and blur background
+        Uses improved center-weighted detection to identify subject
         
         Args:
             image: PIL Image to process
@@ -42,25 +42,32 @@ class EnhancementEngine:
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
-            # Create edge detection mask to identify subject
-            # Subjects typically have more edges/details than backgrounds
-            edges = image.filter(ImageFilter.FIND_EDGES)
-            edges_gray = edges.convert('L')
+            width, height = image.size
             
-            # Enhance edges to create better mask
-            enhancer = ImageEnhance.Contrast(edges_gray)
-            edges_enhanced = enhancer.enhance(3.0)
+            # Create radial gradient mask - simple and effective
+            # Center = sharp (subject), edges = blurred (background)
+            mask = Image.new('L', (width, height), 255)
             
-            # Threshold to create binary mask (subject vs background)
-            # Higher values = more area considered as subject
-            threshold = 30
-            mask = edges_enhanced.point(lambda x: 255 if x > threshold else 0)
+            # Apply radial gradient using ImageDraw
+            from PIL import ImageDraw
+            draw = ImageDraw.Draw(mask)
             
-            # Dilate mask to include more of the subject
-            mask = mask.filter(ImageFilter.MaxFilter(size=15))
+            center_x, center_y = width // 2, height // 2
+            max_radius = min(width, height) // 2
             
-            # Smooth mask edges for natural transition
-            mask = mask.filter(ImageFilter.GaussianBlur(radius=10))
+            # Draw concentric circles with decreasing opacity
+            # This creates a radial gradient effect
+            steps = 50
+            for i in range(steps):
+                radius = int(max_radius * (i / steps) * 1.5)
+                opacity = int(255 * (1 - (i / steps) ** 0.6))
+                draw.ellipse(
+                    [center_x - radius, center_y - radius, center_x + radius, center_y + radius],
+                    fill=opacity
+                )
+            
+            # Smooth the mask heavily for natural transition
+            mask = mask.filter(ImageFilter.GaussianBlur(radius=40))
             
             # Create blurred version of entire image
             blurred = image.filter(ImageFilter.GaussianBlur(radius=blur_strength))
