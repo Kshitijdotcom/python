@@ -514,31 +514,26 @@
                     </div>
 
                     <div class="control-group">
-                        <label for="blur-strength">Background Blur Strength (Portrait Mode)</label>
+                        <label for="selective-blur-strength">Selective Blur Strength</label>
                         <div class="slider-wrapper">
-                            <input type="range" id="blur-strength" min="5" max="30" value="15" data-unit="">
+                            <input type="range" id="selective-blur-strength" min="5" max="30" value="15" data-unit="">
                             <span class="value-display">15</span>
                         </div>
                     </div>
 
                     <div class="control-group" style="border-bottom: none;">
-                        <button id="blur-background-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
-                            Blur Background
+                        <button id="start-selection-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
+                            Select Area to Blur
                         </button>
-                        <div id="blur-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
-                            <span id="blur-status-text">Processing...</span>
+                        <button id="apply-selective-blur-button" class="upload-label" style="width: 100%; margin-bottom: 10px; display: none;">
+                            Apply Blur to Selection
+                        </button>
+                        <button id="cancel-selection-button" class="style-button" style="width: 100%; margin-bottom: 10px; display: none;">
+                            Cancel Selection
+                        </button>
+                        <div id="selection-hint" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.85rem; margin-top: 10px;">
+                            Click and drag on the image to select area
                         </div>
-                        <div id="blur-error" style="display: none; text-align: center; color: #e53935; font-size: 0.85rem; margin-top: 10px; padding: 8px; background: rgba(229, 57, 53, 0.1); border-radius: 4px;">
-                        </div>
-                    </div>
-
-                    <div class="control-group" id="blur-controls" style="display: none; border-bottom: none;">
-                        <button id="blur-compare-button" class="style-button" style="width: 100%; margin-bottom: 8px;">
-                            Compare Original
-                        </button>
-                        <button id="undo-blur-button" class="style-button" style="width: 100%; background: #e53935; border-color: #e53935;">
-                            Undo Blur
-                        </button>
                     </div>
                 </div>
             </div>
@@ -618,6 +613,8 @@
             <div id="image-container">
                 <img id="editor-image" alt="Image being edited" 
                     src="https://placehold.co/900x600/353535/FFFFFF?text=Upload+Image+or+Paste+(Ctrl+V)">
+                <!-- Selection canvas overlay -->
+                <canvas id="selection-canvas" style="position: absolute; top: 0; left: 0; pointer-events: none; display: none;"></canvas>
                 <!-- Hidden canvas for rendering image with filters before download -->
                 <canvas id="render-canvas" style="display: none;"></canvas>
             </div>
@@ -1181,38 +1178,236 @@
             }
         }
         
-        // Background Blur state
-        const blurState = {
-            originalImage: null,
-            blurredImage: null,
-            compareMode: false
+        // Selective Blur state
+        const selectiveBlurState = {
+            isSelecting: false,
+            startX: 0,
+            startY: 0,
+            endX: 0,
+            endY: 0,
+            selectionCanvas: null,
+            selectionCtx: null
         };
         
-        function showBlurStatus(message) {
-            const statusDiv = document.getElementById('blur-status');
-            const statusText = document.getElementById('blur-status-text');
-            statusText.textContent = message;
-            statusDiv.style.display = 'block';
-            document.getElementById('blur-error').style.display = 'none';
+        // Initialize selection canvas
+        function initSelectionCanvas() {
+            selectiveBlurState.selectionCanvas = document.getElementById('selection-canvas');
+            selectiveBlurState.selectionCtx = selectiveBlurState.selectionCanvas.getContext('2d');
         }
         
-        function hideBlurStatus() {
-            document.getElementById('blur-status').style.display = 'none';
+        // Start selection mode
+        function handleStartSelection() {
+            const container = document.getElementById('image-container');
+            const canvas = selectiveBlurState.selectionCanvas;
+            const img = mainEditorImage;
+            
+            // Set canvas size to match image
+            canvas.width = img.clientWidth;
+            canvas.height = img.clientHeight;
+            canvas.style.width = img.clientWidth + 'px';
+            canvas.style.height = img.clientHeight + 'px';
+            canvas.style.display = 'block';
+            canvas.style.pointerEvents = 'auto';
+            
+            selectiveBlurState.isSelecting = true;
+            
+            // Show/hide buttons
+            document.getElementById('start-selection-button').style.display = 'none';
+            document.getElementById('cancel-selection-button').style.display = 'block';
+            document.getElementById('selection-hint').style.display = 'block';
+            
+            // Add mouse event listeners
+            canvas.addEventListener('mousedown', handleSelectionStart);
+            canvas.addEventListener('mousemove', handleSelectionMove);
+            canvas.addEventListener('mouseup', handleSelectionEnd);
         }
         
-        function showBlurError(message) {
-            const errorDiv = document.getElementById('blur-error');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            hideBlurStatus();
+        function handleSelectionStart(e) {
+            const rect = selectiveBlurState.selectionCanvas.getBoundingClientRect();
+            selectiveBlurState.startX = e.clientX - rect.left;
+            selectiveBlurState.startY = e.clientY - rect.top;
+            selectiveBlurState.isSelecting = true;
         }
         
-        function hideBlurError() {
-            document.getElementById('blur-error').style.display = 'none';
+        function handleSelectionMove(e) {
+            if (!selectiveBlurState.isSelecting) return;
+            
+            const rect = selectiveBlurState.selectionCanvas.getBoundingClientRect();
+            selectiveBlurState.endX = e.clientX - rect.left;
+            selectiveBlurState.endY = e.clientY - rect.top;
+            
+            // Draw selection rectangle
+            const ctx = selectiveBlurState.selectionCtx;
+            const canvas = selectiveBlurState.selectionCanvas;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#c9a961';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 5]);
+            ctx.strokeRect(
+                selectiveBlurState.startX,
+                selectiveBlurState.startY,
+                selectiveBlurState.endX - selectiveBlurState.startX,
+                selectiveBlurState.endY - selectiveBlurState.startY
+            );
+            
+            // Fill with semi-transparent overlay
+            ctx.fillStyle = 'rgba(201, 169, 97, 0.1)';
+            ctx.fillRect(
+                selectiveBlurState.startX,
+                selectiveBlurState.startY,
+                selectiveBlurState.endX - selectiveBlurState.startX,
+                selectiveBlurState.endY - selectiveBlurState.startY
+            );
         }
         
-        // Background Blur - Apply portrait mode style background blur
-        async function handleBlurBackground() {
+        function handleSelectionEnd(e) {
+            selectiveBlurState.isSelecting = false;
+            
+            // Show apply button if selection is valid
+            const width = Math.abs(selectiveBlurState.endX - selectiveBlurState.startX);
+            const height = Math.abs(selectiveBlurState.endY - selectiveBlurState.startY);
+            
+            if (width > 10 && height > 10) {
+                document.getElementById('apply-selective-blur-button').style.display = 'block';
+                document.getElementById('selection-hint').textContent = 'Selection ready! Click "Apply Blur" or adjust and reselect';
+            }
+        }
+        
+        function handleCancelSelection() {
+            const canvas = selectiveBlurState.selectionCanvas;
+            const ctx = selectiveBlurState.selectionCtx;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.style.display = 'none';
+            canvas.style.pointerEvents = 'none';
+            
+            // Remove event listeners
+            canvas.removeEventListener('mousedown', handleSelectionStart);
+            canvas.removeEventListener('mousemove', handleSelectionMove);
+            canvas.removeEventListener('mouseup', handleSelectionEnd);
+            
+            // Reset state
+            selectiveBlurState.isSelecting = false;
+            
+            // Show/hide buttons
+            document.getElementById('start-selection-button').style.display = 'block';
+            document.getElementById('cancel-selection-button').style.display = 'none';
+            document.getElementById('apply-selective-blur-button').style.display = 'none';
+            document.getElementById('selection-hint').style.display = 'none';
+        }
+        
+        // Apply selective blur to selected area (client-side processing)
+        async function handleApplySelectiveBlur() {
+            try {
+                showEnhancementStatus('Applying blur to selected area...');
+                
+                const blurStrength = document.getElementById('selective-blur-strength').value;
+                const img = mainEditorImage;
+                
+                // Get selection coordinates (normalized to actual image size)
+                const scaleX = img.naturalWidth / img.clientWidth;
+                const scaleY = img.naturalHeight / img.clientHeight;
+                
+                const x1 = Math.min(selectiveBlurState.startX, selectiveBlurState.endX) * scaleX;
+                const y1 = Math.min(selectiveBlurState.startY, selectiveBlurState.endY) * scaleY;
+                const x2 = Math.max(selectiveBlurState.startX, selectiveBlurState.endX) * scaleX;
+                const y2 = Math.max(selectiveBlurState.startY, selectiveBlurState.endY) * scaleY;
+                
+                // Create canvas with original image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                ctx.drawImage(img, 0, 0);
+                
+                // Get image data for selected region
+                const regionWidth = x2 - x1;
+                const regionHeight = y2 - y1;
+                const imageData = ctx.getImageData(x1, y1, regionWidth, regionHeight);
+                
+                // Apply blur using simple box blur algorithm
+                const blurRadius = parseInt(blurStrength);
+                const blurredData = applyBoxBlur(imageData, blurRadius);
+                
+                // Put blurred data back
+                ctx.putImageData(blurredData, x1, y1);
+                
+                // Update image
+                const blurredImage = canvas.toDataURL('image/jpeg', 0.95);
+                mainEditorImage.src = blurredImage;
+                
+                // Clean up selection
+                handleCancelSelection();
+                
+                showEnhancementStatus('Blur applied successfully!');
+                setTimeout(hideEnhancementStatus, 2000);
+                
+            } catch (error) {
+                console.error('Selective blur error:', error);
+                showEnhancementError('Failed to apply blur: ' + error.message);
+            }
+        }
+        
+        // Simple box blur algorithm for client-side processing
+        function applyBoxBlur(imageData, radius) {
+            const width = imageData.width;
+            const height = imageData.height;
+            const data = imageData.data;
+            const output = new Uint8ClampedArray(data);
+            
+            // Apply horizontal blur
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let r = 0, g = 0, b = 0, count = 0;
+                    
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        if (nx >= 0 && nx < width) {
+                            const idx = (y * width + nx) * 4;
+                            r += data[idx];
+                            g += data[idx + 1];
+                            b += data[idx + 2];
+                            count++;
+                        }
+                    }
+                    
+                    const idx = (y * width + x) * 4;
+                    output[idx] = r / count;
+                    output[idx + 1] = g / count;
+                    output[idx + 2] = b / count;
+                }
+            }
+            
+            // Apply vertical blur
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let r = 0, g = 0, b = 0, count = 0;
+                    
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        const ny = y + dy;
+                        if (ny >= 0 && ny < height) {
+                            const idx = (ny * width + x) * 4;
+                            r += output[idx];
+                            g += output[idx + 1];
+                            b += output[idx + 2];
+                            count++;
+                        }
+                    }
+                    
+                    const idx = (y * width + x) * 4;
+                    data[idx] = r / count;
+                    data[idx + 1] = g / count;
+                    data[idx + 2] = b / count;
+                }
+            }
+            
+            return imageData;
+        }
+        
+        // Old background blur function - keeping for reference but not used
+        async function handleBlurBackground_OLD() {
             if (enhancementState.isProcessing) return;
             
             const blurButton = document.getElementById('blur-background-button');
@@ -1542,15 +1737,16 @@
                 e.target.nextElementSibling.textContent = e.target.value + '%';
             });
             
-            document.getElementById('blur-background-button').addEventListener('click', handleBlurBackground);
-            document.getElementById('blur-compare-button').addEventListener('click', handleBlurCompare);
-            document.getElementById('undo-blur-button').addEventListener('click', handleUndoBlur);
+            initSelectionCanvas();
+            document.getElementById('start-selection-button').addEventListener('click', handleStartSelection);
+            document.getElementById('cancel-selection-button').addEventListener('click', handleCancelSelection);
+            document.getElementById('apply-selective-blur-button').addEventListener('click', handleApplySelectiveBlur);
             document.getElementById('auto-adjust-button').addEventListener('click', handleAutoAdjust);
             document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
             
-            // Blur strength slider update
-            document.getElementById('blur-strength').addEventListener('input', function() {
+            // Selective blur strength slider update
+            document.getElementById('selective-blur-strength').addEventListener('input', function() {
                 this.nextElementSibling.textContent = this.value;
             });
             document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
