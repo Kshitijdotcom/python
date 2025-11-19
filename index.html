@@ -544,8 +544,11 @@
                     </div>
 
                     <div class="control-group" style="border-bottom: none;">
+                        <button id="auto-enhance-button" class="upload-label" style="width: 100%; margin-bottom: 10px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover)); font-weight: 600;">
+                            ✨ Auto Enhance (Smart)
+                        </button>
                         <button id="ai-enhance-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
-                            AI Enhance
+                            AI Enhance (Manual)
                         </button>
                         <div id="enhancement-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
                             <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--color-accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -1059,6 +1062,137 @@
             hideEnhancementStatus();
             hideEnhancementError();
         }
+        
+        // Auto Enhance - Automatically detects image type and applies best enhancement
+        async function handleAutoEnhance() {
+            if (enhancementState.isProcessing) return;
+            
+            const autoEnhanceButton = document.getElementById('auto-enhance-button');
+            enhancementState.isProcessing = true;
+            autoEnhanceButton.disabled = true;
+            autoEnhanceButton.style.opacity = '0.5';
+            
+            hideEnhancementError();
+            showEnhancementStatus('Analyzing image...');
+            
+            // Store original image if not already stored
+            if (!enhancementState.originalImage) {
+                enhancementState.originalImage = mainEditorImage.src;
+            }
+            
+            try {
+                // Get current image as base64
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                let width = mainEditorImage.naturalWidth;
+                let height = mainEditorImage.naturalHeight;
+                
+                // Compress large images for mobile to prevent timeout
+                const maxDimension = 3000;
+                if (width > maxDimension || height > maxDimension) {
+                    const scale = maxDimension / Math.max(width, height);
+                    width = Math.floor(width * scale);
+                    height = Math.floor(height * scale);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(mainEditorImage, 0, 0, width, height);
+                
+                // Analyze image to detect type
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const detectedPreset = detectImageType(imageData, width, height);
+                
+                console.log(`Auto-detected preset: ${detectedPreset}`);
+                showEnhancementStatus(`Detected ${detectedPreset} image. Enhancing...`);
+                
+                // Use JPEG with quality 0.9 for better compression
+                const base64Data = canvas.toDataURL('image/jpeg', 0.9);
+                
+                // Show estimated time after 3 seconds
+                const timeoutId = setTimeout(() => {
+                    showEnhancementStatus('Processing... This may take 10-30 seconds');
+                }, 3000);
+                
+                // Call enhancement API with detected preset
+                const result = await enhanceImage(
+                    base64Data,
+                    detectedPreset,
+                    1, // Always use 1x scale for auto enhance
+                    85 // Optimal strength for auto enhance
+                );
+                
+                clearTimeout(timeoutId);
+                
+                // Update image with enhanced version
+                const enhancedImageData = 'data:image/jpeg;base64,' + result.enhanced_image_base64;
+                enhancementState.enhancedImage = enhancedImageData;
+                mainEditorImage.src = enhancedImageData;
+                
+                // Show success message
+                const processingTime = result.metadata.processing_time;
+                showEnhancementStatus(`✓ Auto-enhanced (${detectedPreset}) in ${processingTime}s`);
+                setTimeout(hideEnhancementStatus, 3000);
+                
+                // Show compare and undo buttons
+                document.getElementById('enhancement-controls').style.display = 'block';
+                
+            } catch (error) {
+                showEnhancementError(`Auto enhance failed: ${error.message}`);
+            } finally {
+                enhancementState.isProcessing = false;
+                autoEnhanceButton.disabled = false;
+                autoEnhanceButton.style.opacity = '1';
+            }
+        }
+        
+        // Detect image type based on content analysis
+        function detectImageType(imageData, width, height) {
+            const data = imageData.data;
+            let skinTonePixels = 0;
+            let totalPixels = width * height;
+            let greenPixels = 0;
+            let bluePixels = 0;
+            
+            // Sample every 10th pixel for performance
+            for (let i = 0; i < data.length; i += 40) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // Detect skin tones (portraits)
+                if (r > 95 && g > 40 && b > 20 && 
+                    r > g && r > b && 
+                    Math.abs(r - g) > 15) {
+                    skinTonePixels++;
+                }
+                
+                // Detect greenery (landscapes)
+                if (g > r && g > b && g > 60) {
+                    greenPixels++;
+                }
+                
+                // Detect sky/water (landscapes)
+                if (b > r && b > g && b > 80) {
+                    bluePixels++;
+                }
+            }
+            
+            const sampledPixels = totalPixels / 10;
+            const skinToneRatio = skinTonePixels / sampledPixels;
+            const greenRatio = greenPixels / sampledPixels;
+            const blueRatio = bluePixels / sampledPixels;
+            
+            // Decision logic
+            if (skinToneRatio > 0.15) {
+                return 'portrait'; // Significant skin tones detected
+            } else if (greenRatio > 0.25 || blueRatio > 0.25) {
+                return 'landscape'; // Nature/outdoor scene detected
+            } else {
+                return 'general'; // Default for other images
+            }
+        }
 
         // --- EVENT LISTENERS & INITIALIZATION ---
 
@@ -1116,6 +1250,7 @@
                 e.target.nextElementSibling.textContent = e.target.value + '%';
             });
             
+            document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
             document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
             document.getElementById('undo-enhancement-button').addEventListener('click', handleUndoEnhancement);
