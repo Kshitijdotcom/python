@@ -423,7 +423,7 @@
                     <div class="control-group">
                         <label for="brightness">Brightness</label>
                         <div class="slider-wrapper">
-                            <input type="range" id="brightness" min="0" max="100" value="100" data-unit="%" data-css-var="--image-brightness">
+                            <input type="range" id="brightness" min="0" max="200" value="100" data-unit="%" data-css-var="--image-brightness">
                             <span class="value-display">100%</span>
                         </div>
                     </div>
@@ -431,7 +431,7 @@
                     <div class="control-group">
                         <label for="contrast">Contrast</label>
                         <div class="slider-wrapper">
-                            <input type="range" id="contrast" min="0" max="100" value="100" data-unit="%" data-css-var="--image-contrast">
+                            <input type="range" id="contrast" min="0" max="200" value="100" data-unit="%" data-css-var="--image-contrast">
                             <span class="value-display">100%</span>
                         </div>
                     </div>
@@ -439,7 +439,7 @@
                     <div class="control-group">
                         <label for="saturation">Saturation</label>
                         <div class="slider-wrapper">
-                            <input type="range" id="saturation" min="0" max="100" value="100" data-unit="%" data-css-var="--image-saturate">
+                            <input type="range" id="saturation" min="0" max="200" value="100" data-unit="%" data-css-var="--image-saturate">
                             <span class="value-display">100%</span>
                         </div>
                     </div>
@@ -1193,40 +1193,40 @@
                 const avgBrightness = totalBrightness / pixelCount;
                 const avgSaturation = totalSaturation / pixelCount;
                 
-                // Calculate optimal adjustments (range: 0-100, default: 100)
+                // Calculate optimal adjustments (range: 0-200, default: 100)
                 let brightnessAdjust = 100;
                 let contrastAdjust = 100;
                 let saturationAdjust = 100;
                 
                 // Brightness adjustment (target: 128, range: 0-255)
                 if (avgBrightness < 100) {
-                    // Image is too dark - no change (can't increase beyond 100)
-                    brightnessAdjust = 100;
+                    // Image is too dark - increase brightness
+                    brightnessAdjust = 100 + ((100 - avgBrightness) / 100 * 30);
                 } else if (avgBrightness > 160) {
-                    // Image is too bright - decrease
-                    brightnessAdjust = 100 - ((avgBrightness - 160) / 95 * 40);
+                    // Image is too bright - decrease brightness
+                    brightnessAdjust = 100 - ((avgBrightness - 160) / 95 * 20);
                 }
                 
                 // Contrast adjustment (boost if image is flat)
                 if (avgBrightness > 80 && avgBrightness < 180) {
-                    contrastAdjust = 100; // Keep at 100 for mid-tone images
+                    contrastAdjust = 115; // Boost contrast for mid-tone images
                 } else {
-                    contrastAdjust = 100; // Keep at 100 for others
+                    contrastAdjust = 105; // Slight boost for others
                 }
                 
                 // Saturation adjustment (target: 0.3-0.5)
                 if (avgSaturation < 0.25) {
-                    // Image is too desaturated - no change (can't increase beyond 100)
-                    saturationAdjust = 100;
+                    // Image is too desaturated - increase saturation
+                    saturationAdjust = 100 + ((0.25 - avgSaturation) / 0.25 * 30);
                 } else if (avgSaturation > 0.6) {
-                    // Image is oversaturated - decrease
-                    saturationAdjust = 100 - ((avgSaturation - 0.6) / 0.4 * 40);
+                    // Image is oversaturated - decrease saturation
+                    saturationAdjust = 100 - ((avgSaturation - 0.6) / 0.4 * 20);
                 }
                 
-                // Clamp values to new range (0-100)
-                brightnessAdjust = Math.max(0, Math.min(100, Math.round(brightnessAdjust)));
-                contrastAdjust = Math.max(0, Math.min(100, Math.round(contrastAdjust)));
-                saturationAdjust = Math.max(0, Math.min(100, Math.round(saturationAdjust)));
+                // Clamp values to range (0-200)
+                brightnessAdjust = Math.max(0, Math.min(200, Math.round(brightnessAdjust)));
+                contrastAdjust = Math.max(0, Math.min(200, Math.round(contrastAdjust)));
+                saturationAdjust = Math.max(0, Math.min(200, Math.round(saturationAdjust)));
                 
                 console.log(`Auto Adjust: Brightness=${brightnessAdjust}%, Contrast=${contrastAdjust}%, Saturation=${saturationAdjust}%`);
                 console.log(`Image stats: avgBrightness=${avgBrightness.toFixed(1)}, avgSaturation=${avgSaturation.toFixed(2)}`);
