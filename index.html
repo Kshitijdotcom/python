@@ -415,6 +415,12 @@
                 <div class="section-content">
                     
                     <div class="control-group">
+                        <button id="auto-adjust-button" class="upload-label" style="width: 100%; margin-bottom: 15px; background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover)); font-weight: 600;">
+                            Auto Adjust
+                        </button>
+                    </div>
+                    
+                    <div class="control-group">
                         <label for="brightness">Brightness</label>
                         <div class="slider-wrapper">
                             <input type="range" id="brightness" min="50" max="150" value="100" data-unit="%" data-css-var="--image-brightness">
@@ -1016,7 +1022,7 @@
                 
                 // Show success message with processing time
                 const processingTime = result.metadata.processing_time;
-                showEnhancementStatus(`✓ Enhanced in ${processingTime}s`);
+                showEnhancementStatus(`Enhanced in ${processingTime}s`);
                 setTimeout(hideEnhancementStatus, 3000);
                 
                 // Show compare and undo buttons
@@ -1132,7 +1138,7 @@
                 
                 // Show success message
                 const processingTime = result.metadata.processing_time;
-                showEnhancementStatus(`✓ Auto-enhanced (${detectedPreset}) in ${processingTime}s`);
+                showEnhancementStatus(`Auto-enhanced (${detectedPreset}) in ${processingTime}s`);
                 setTimeout(hideEnhancementStatus, 3000);
                 
                 // Show compare and undo buttons
@@ -1144,6 +1150,108 @@
                 enhancementState.isProcessing = false;
                 autoEnhanceButton.disabled = false;
                 autoEnhanceButton.style.opacity = '1';
+            }
+        }
+        
+        // Auto Adjust - Automatically adjusts brightness, contrast, saturation based on image analysis
+        function handleAutoAdjust() {
+            try {
+                // Get current image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Analyze image statistics
+                let totalBrightness = 0;
+                let totalSaturation = 0;
+                let pixelCount = 0;
+                
+                // Sample every 10th pixel for performance
+                for (let i = 0; i < data.length; i += 40) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Calculate brightness (perceived luminance)
+                    const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
+                    totalBrightness += brightness;
+                    
+                    // Calculate saturation
+                    const max = Math.max(r, g, b);
+                    const min = Math.min(r, g, b);
+                    const saturation = max === 0 ? 0 : (max - min) / max;
+                    totalSaturation += saturation;
+                    
+                    pixelCount++;
+                }
+                
+                const avgBrightness = totalBrightness / pixelCount;
+                const avgSaturation = totalSaturation / pixelCount;
+                
+                // Calculate optimal adjustments
+                let brightnessAdjust = 100;
+                let contrastAdjust = 100;
+                let saturationAdjust = 100;
+                
+                // Brightness adjustment (target: 128, range: 0-255)
+                if (avgBrightness < 100) {
+                    // Image is too dark
+                    brightnessAdjust = 100 + ((100 - avgBrightness) / 100 * 30);
+                } else if (avgBrightness > 160) {
+                    // Image is too bright
+                    brightnessAdjust = 100 - ((avgBrightness - 160) / 95 * 20);
+                }
+                
+                // Contrast adjustment (boost if image is flat)
+                if (avgBrightness > 80 && avgBrightness < 180) {
+                    contrastAdjust = 115; // Boost contrast for mid-tone images
+                } else {
+                    contrastAdjust = 105; // Slight boost for others
+                }
+                
+                // Saturation adjustment (target: 0.3-0.5)
+                if (avgSaturation < 0.25) {
+                    // Image is too desaturated
+                    saturationAdjust = 100 + ((0.25 - avgSaturation) / 0.25 * 30);
+                } else if (avgSaturation > 0.6) {
+                    // Image is oversaturated
+                    saturationAdjust = 100 - ((avgSaturation - 0.6) / 0.4 * 20);
+                }
+                
+                // Clamp values
+                brightnessAdjust = Math.max(50, Math.min(150, Math.round(brightnessAdjust)));
+                contrastAdjust = Math.max(50, Math.min(150, Math.round(contrastAdjust)));
+                saturationAdjust = Math.max(50, Math.min(150, Math.round(saturationAdjust)));
+                
+                console.log(`Auto Adjust: Brightness=${brightnessAdjust}%, Contrast=${contrastAdjust}%, Saturation=${saturationAdjust}%`);
+                console.log(`Image stats: avgBrightness=${avgBrightness.toFixed(1)}, avgSaturation=${avgSaturation.toFixed(2)}`);
+                
+                // Apply adjustments to sliders
+                const brightnessSlider = document.getElementById('brightness');
+                const contrastSlider = document.getElementById('contrast');
+                const saturationSlider = document.getElementById('saturation');
+                
+                brightnessSlider.value = brightnessAdjust;
+                contrastSlider.value = contrastAdjust;
+                saturationSlider.value = saturationAdjust;
+                
+                // Trigger update events
+                brightnessSlider.dispatchEvent(new Event('input'));
+                contrastSlider.dispatchEvent(new Event('input'));
+                saturationSlider.dispatchEvent(new Event('input'));
+                
+                // Show feedback
+                showEnhancementStatus('Auto-adjusted based on image analysis');
+                setTimeout(hideEnhancementStatus, 2000);
+                
+            } catch (error) {
+                console.error('Auto adjust error:', error);
+                showEnhancementError('Auto adjust failed');
             }
         }
         
@@ -1250,6 +1358,7 @@
                 e.target.nextElementSibling.textContent = e.target.value + '%';
             });
             
+            document.getElementById('auto-adjust-button').addEventListener('click', handleAutoAdjust);
             document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
             document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
