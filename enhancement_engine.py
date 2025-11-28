@@ -171,14 +171,19 @@ class EnhancementEngine:
     
     def _reduce_noise(self, image: Image.Image, strength: float) -> Image.Image:
         """
-        Reduce noise while preserving details
+        Advanced noise reduction while preserving details
         """
         if strength > 0.3:
-            # Apply median filter for noise reduction
-            image = image.filter(ImageFilter.MedianFilter(size=3))
+            # Bilateral-like filter: smooth while preserving edges
+            # Apply selective smoothing
+            smoothed = image.filter(ImageFilter.SMOOTH_MORE)
+            # Blend to preserve some texture
+            image = Image.blend(image, smoothed, 0.5 * strength)
+        
         if strength > 0.6:
-            # Additional smoothing for heavy noise
-            image = image.filter(ImageFilter.SMOOTH)
+            # Additional median filter for heavy noise
+            image = image.filter(ImageFilter.MedianFilter(size=3))
+        
         return image
     
     def _enhance_details(self, image: Image.Image, strength: float) -> Image.Image:
@@ -214,43 +219,81 @@ class EnhancementEngine:
     
     def _enhance_facial_features(self, image: Image.Image, strength: float) -> Image.Image:
         """
-        Enhance facial details - eyes, skin tone, texture (FAST VERSION)
+        Enhanced facial details with better algorithms
         """
         # Step 1: Auto color balance
         image = self._auto_color_balance(image)
         
-        # Step 2: Enhance brightness
+        # Step 2: Adaptive contrast enhancement (CLAHE-like)
+        # Split into RGB channels for better control
+        r, g, b = image.split()
+        r = ImageOps.autocontrast(r, cutoff=2)
+        g = ImageOps.autocontrast(g, cutoff=2)
+        b = ImageOps.autocontrast(b, cutoff=2)
+        image = Image.merge('RGB', (r, g, b))
+        
+        # Step 3: Enhance brightness slightly
         enhancer = ImageEnhance.Brightness(image)
-        image = enhancer.enhance(1.0 + (0.1 * strength))
+        image = enhancer.enhance(1.0 + (0.08 * strength))
         
-        # Step 3: Enhance contrast
+        # Step 4: Boost contrast
         enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(1.0 + (0.2 * strength))
+        image = enhancer.enhance(1.0 + (0.25 * strength))
         
-        # Step 4: Light sharpening
+        # Step 5: Multi-pass sharpening for better detail
+        # First pass: moderate sharpening
         enhancer = ImageEnhance.Sharpness(image)
-        image = enhancer.enhance(1.0 + (0.5 * strength))
+        image = enhancer.enhance(1.0 + (0.4 * strength))
+        
+        # Second pass: unsharp mask for fine details
+        if strength > 0.3:
+            radius = 1.5
+            percent = int(120 * strength)
+            threshold = 2
+            image = image.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
+        
+        # Step 6: Subtle color enhancement
+        enhancer = ImageEnhance.Color(image)
+        image = enhancer.enhance(1.0 + (0.15 * strength))
         
         return image
     
     def _enhance_clarity(self, image: Image.Image, strength: float) -> Image.Image:
         """
-        Enhance overall clarity, sharpness, and detail (FAST VERSION)
+        Enhanced clarity with advanced algorithms
         """
-        # Step 1: Auto color balance
+        # Step 1: Auto color balance with better algorithm
         image = self._auto_color_balance(image)
         
-        # Step 2: Boost contrast
+        # Step 2: Edge enhancement for better detail perception
+        if strength > 0.4:
+            edges = image.filter(ImageFilter.EDGE_ENHANCE_MORE)
+            image = Image.blend(image, edges, 0.3 * strength)
+        
+        # Step 3: Adaptive contrast
         enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(1.0 + (0.3 * strength))
+        
+        # Step 4: Color enhancement
+        enhancer = ImageEnhance.Color(image)
         image = enhancer.enhance(1.0 + (0.25 * strength))
         
-        # Step 3: Enhance color saturation
-        enhancer = ImageEnhance.Color(image)
-        image = enhancer.enhance(1.0 + (0.2 * strength))
-        
-        # Step 4: Sharpening
+        # Step 5: Multi-pass sharpening
+        # First pass: general sharpening
         enhancer = ImageEnhance.Sharpness(image)
-        image = enhancer.enhance(1.0 + (0.6 * strength))
+        image = enhancer.enhance(1.0 + (0.5 * strength))
+        
+        # Second pass: unsharp mask for fine details
+        if strength > 0.5:
+            radius = 2.0
+            percent = int(150 * strength)
+            threshold = 3
+            image = image.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
+        
+        # Step 6: Detail enhancement
+        if strength > 0.6:
+            detailed = image.filter(ImageFilter.DETAIL)
+            image = Image.blend(image, detailed, 0.4 * strength)
         
         return image
 
@@ -281,31 +324,51 @@ class EnhancementEngine:
             image = self._enhance_facial_features(image, factor)
             
         elif preset == 'landscape':
-            # Landscape: Enhance clarity, color balance, brightness, contrast, sharpness (FAST VERSION)
-            logger.info("Applying landscape enhancement with clarity optimization")
+            # Landscape: Enhanced with better color and detail algorithms
+            logger.info("Applying landscape enhancement with advanced optimization")
             
             # Step 1: Auto color balance
             image = self._auto_color_balance(image)
             
-            # Step 2: Boost color saturation
+            # Step 2: Vibrant color enhancement
             enhancer = ImageEnhance.Color(image)
+            image = enhancer.enhance(1.0 + (0.45 * factor))
+            
+            # Step 3: Strong contrast for dramatic effect
+            enhancer = ImageEnhance.Contrast(image)
             image = enhancer.enhance(1.0 + (0.4 * factor))
             
-            # Step 3: Increase contrast
-            enhancer = ImageEnhance.Contrast(image)
-            image = enhancer.enhance(1.0 + (0.35 * factor))
+            # Step 4: Edge enhancement for texture
+            if factor > 0.5:
+                edges = image.filter(ImageFilter.EDGE_ENHANCE_MORE)
+                image = Image.blend(image, edges, 0.25 * factor)
             
-            # Step 4: Sharpening
+            # Step 5: Multi-pass sharpening
             enhancer = ImageEnhance.Sharpness(image)
-            image = enhancer.enhance(1.0 + (0.6 * factor))
+            image = enhancer.enhance(1.0 + (0.5 * factor))
+            
+            # Unsharp mask for fine details
+            if factor > 0.6:
+                radius = 2.5
+                percent = int(180 * factor)
+                threshold = 3
+                image = image.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
+            
+            # Step 6: Slight brightness boost
+            enhancer = ImageEnhance.Brightness(image)
+            image = enhancer.enhance(1.0 + (0.1 * factor))
             
         else:  # general
-            # General: Enhance clarity, color balance, brightness, contrast, sharpness
-            # Reduce noise and improve overall detail and quality
-            # Keep the original style of the photo
-            logger.info("Applying general enhancement with clarity optimization")
+            # General: Enhanced clarity with better algorithms
+            logger.info("Applying general enhancement with advanced clarity optimization")
             
             image = self._enhance_clarity(image, factor)
+            
+            # Additional pass for landscape-like images
+            if factor > 0.7:
+                # Boost saturation for vibrant look
+                enhancer = ImageEnhance.Color(image)
+                image = enhancer.enhance(1.0 + (0.15 * factor))
         
         # Natural blending with original to keep realistic look
         if strength < 100:
