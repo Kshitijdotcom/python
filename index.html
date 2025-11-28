@@ -506,49 +506,10 @@
                     </div>
                     
                     <div class="control-group">
-                        <label for="blur">Blur (Set to 0px to Deblur)</label>
+                        <label for="blur">Blur</label>
                         <div class="slider-wrapper">
                             <input type="range" id="blur" min="0" max="10" value="0" data-unit="px" data-css-var="--image-blur">
                             <span class="value-display">0px</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="selective-blur-strength">Blur Strength</label>
-                        <div class="slider-wrapper">
-                            <input type="range" id="selective-blur-strength" min="3" max="25" value="8" data-unit="">
-                            <span class="value-display">8</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="feather-radius">Edge Softness (Feather)</label>
-                        <div class="slider-wrapper">
-                            <input type="range" id="feather-radius" min="10" max="150" value="80" data-unit="px">
-                            <span class="value-display">80px</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Blur Mode</label>
-                        <div class="button-group" id="blur-mode-buttons">
-                            <button class="style-button active" data-mode="inside">Blur Inside</button>
-                            <button class="style-button" data-mode="outside">Blur Outside</button>
-                        </div>
-                    </div>
-
-                    <div class="control-group" style="border-bottom: none;">
-                        <button id="start-selection-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
-                            Select Area
-                        </button>
-                        <button id="apply-selective-blur-button" class="upload-label" style="width: 100%; margin-bottom: 10px; display: none;">
-                            Apply Blur to Selection
-                        </button>
-                        <button id="cancel-selection-button" class="style-button" style="width: 100%; margin-bottom: 10px; display: none;">
-                            Cancel Selection
-                        </button>
-                        <div id="selection-hint" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.85rem; margin-top: 10px;">
-                            Click and drag on the image to select area
                         </div>
                     </div>
                 </div>
@@ -629,8 +590,6 @@
             <div id="image-container">
                 <img id="editor-image" alt="Image being edited" 
                     src="https://placehold.co/900x600/353535/FFFFFF?text=Upload+Image+or+Paste+(Ctrl+V)">
-                <!-- Selection canvas overlay -->
-                <canvas id="selection-canvas" style="position: absolute; top: 0; left: 0; pointer-events: none; display: none;"></canvas>
                 <!-- Hidden canvas for rendering image with filters before download -->
                 <canvas id="render-canvas" style="display: none;"></canvas>
             </div>
@@ -1194,29 +1153,15 @@
             }
         }
         
-        // Selective Blur state
-        const selectiveBlurState = {
-            isSelecting: false,
-            startX: 0,
-            startY: 0,
-            endX: 0,
-            endY: 0,
-            selectionCanvas: null,
-            selectionCtx: null,
-            blurMode: 'inside' // 'inside' or 'outside'
-        };
-        
-        // Initialize selection canvas
-        function initSelectionCanvas() {
-            selectiveBlurState.selectionCanvas = document.getElementById('selection-canvas');
-            selectiveBlurState.selectionCtx = selectiveBlurState.selectionCanvas.getContext('2d');
-        }
-        
-        // Start selection mode
-        function handleStartSelection() {
-            const container = document.getElementById('image-container');
-            const canvas = selectiveBlurState.selectionCanvas;
-            const img = mainEditorImage;
+        // Auto Adjust - Automatically adjusts brightness, contrast, saturation based on image analysis
+        function handleAutoAdjust() {
+            try {
+                // Get current image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
             
             // Set canvas size to match image
             canvas.width = img.clientWidth;
@@ -1804,28 +1749,12 @@
                 e.target.nextElementSibling.textContent = e.target.value + '%';
             });
             
-            initSelectionCanvas();
-            document.getElementById('start-selection-button').addEventListener('click', handleStartSelection);
-            document.getElementById('cancel-selection-button').addEventListener('click', handleCancelSelection);
-            document.getElementById('apply-selective-blur-button').addEventListener('click', handleApplySelectiveBlur);
-            
-            // Blur mode toggle
-            const blurModeButtons = document.querySelectorAll('#blur-mode-buttons .style-button');
-            blurModeButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    blurModeButtons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    selectiveBlurState.blurMode = this.dataset.mode;
-                });
-            });
+
             document.getElementById('auto-adjust-button').addEventListener('click', handleAutoAdjust);
             document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
             
-            // Selective blur strength slider update
-            document.getElementById('selective-blur-strength').addEventListener('input', function() {
-                this.nextElementSibling.textContent = this.value;
-            });
+
             
             // Feather radius slider update
             document.getElementById('feather-radius').addEventListener('input', function() {
