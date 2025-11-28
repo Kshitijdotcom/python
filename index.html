@@ -396,7 +396,7 @@
                 <label for="image-upload" class="upload-label">
                     Upload Image
                 </label>
-                <div style="margin-top: 12px; color: var(--color-text-dimmer); font-size: 0.75rem; letter-spacing: 0.3px;">
+                <div id="paste-hint" style="margin-top: 12px; color: var(--color-text-dimmer); font-size: 0.75rem; letter-spacing: 0.3px;">
                     Or press Ctrl+V to paste image
                 </div>
                 <button id="reset-button">Reset All Adjustments</button>
@@ -748,13 +748,35 @@
 
         // Handles image pasting from clipboard
         function handlePaste(e) {
+            console.log('Paste event triggered');
+            
+            if (!e.clipboardData || !e.clipboardData.items) {
+                console.log('No clipboard data available');
+                return;
+            }
+            
             const items = e.clipboardData.items;
+            console.log('Clipboard items:', items.length);
+            
             for (let i = 0; i < items.length; i++) {
+                console.log('Item type:', items[i].type);
+                
                 if (items[i].type.indexOf("image") !== -1) {
+                    console.log('Image found in clipboard');
                     const blob = items[i].getAsFile();
+                    
+                    if (!blob) {
+                        console.log('Failed to get file from clipboard');
+                        continue;
+                    }
+                    
                     const reader = new FileReader();
                     reader.onload = function(event) {
+                        console.log('Image loaded from clipboard');
                         loadImage(event.target.result);
+                    };
+                    reader.onerror = function(error) {
+                        console.error('Error reading clipboard image:', error);
                     };
                     reader.readAsDataURL(blob);
                     e.preventDefault(); // Prevent default paste action
@@ -1252,6 +1274,11 @@
             
             // Paste listener for the entire document
             document.addEventListener('paste', handlePaste);
+            
+            // Add focus listener to show paste is ready
+            document.addEventListener('focus', () => {
+                console.log('Document has focus - paste should work');
+            }, true);
             
             // AI Enhancement listeners
             const presetButtons = document.querySelectorAll('#preset-buttons .style-button');
