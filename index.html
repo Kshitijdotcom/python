@@ -514,10 +514,18 @@
                     </div>
 
                     <div class="control-group">
-                        <label for="selective-blur-strength">Selective Blur Strength</label>
+                        <label for="selective-blur-strength">Blur Strength</label>
                         <div class="slider-wrapper">
-                            <input type="range" id="selective-blur-strength" min="5" max="30" value="15" data-unit="">
-                            <span class="value-display">15</span>
+                            <input type="range" id="selective-blur-strength" min="3" max="25" value="8" data-unit="">
+                            <span class="value-display">8</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="feather-radius">Edge Softness (Feather)</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="feather-radius" min="10" max="150" value="80" data-unit="px">
+                            <span class="value-display">80px</span>
                         </div>
                     </div>
 
@@ -1334,32 +1342,64 @@
                 
                 const blurRadius = parseInt(blurStrength);
                 
+                // Get feather radius
+                const featherRadius = parseInt(document.getElementById('feather-radius').value);
+                
+                // Create a temporary canvas for the blurred version
+                const blurredCanvas = document.createElement('canvas');
+                const blurredCtx = blurredCanvas.getContext('2d');
+                blurredCanvas.width = canvas.width;
+                blurredCanvas.height = canvas.height;
+                blurredCtx.drawImage(img, 0, 0);
+                
+                // Apply blur to entire image
+                const fullImageData = blurredCtx.getImageData(0, 0, canvas.width, canvas.height);
+                const blurredData = applyBoxBlur(fullImageData, blurRadius);
+                blurredCtx.putImageData(blurredData, 0, 0);
+                
+                // Create feathered mask
+                const maskCanvas = document.createElement('canvas');
+                const maskCtx = maskCanvas.getContext('2d');
+                maskCanvas.width = canvas.width;
+                maskCanvas.height = canvas.height;
+                
                 if (mode === 'inside') {
-                    // Blur only the selected region
-                    const regionWidth = x2 - x1;
-                    const regionHeight = y2 - y1;
-                    const imageData = ctx.getImageData(x1, y1, regionWidth, regionHeight);
-                    const blurredData = applyBoxBlur(imageData, blurRadius);
-                    ctx.putImageData(blurredData, x1, y1);
+                    // White inside selection, black outside
+                    maskCtx.fillStyle = 'black';
+                    maskCtx.fillRect(0, 0, canvas.width, canvas.height);
+                    maskCtx.fillStyle = 'white';
+                    maskCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
                 } else {
-                    // Blur everything EXCEPT the selected region
-                    // Get entire image data
-                    const fullImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const blurredFullData = applyBoxBlur(fullImageData, blurRadius);
-                    
-                    // Put blurred image
-                    ctx.putImageData(blurredFullData, 0, 0);
-                    
-                    // Draw original (sharp) selected region on top
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCanvas.width = img.naturalWidth;
-                    tempCanvas.height = img.naturalHeight;
-                    tempCtx.drawImage(img, 0, 0);
-                    
-                    const sharpRegion = tempCtx.getImageData(x1, y1, x2 - x1, y2 - y1);
-                    ctx.putImageData(sharpRegion, x1, y1);
+                    // Black inside selection, white outside
+                    maskCtx.fillStyle = 'white';
+                    maskCtx.fillRect(0, 0, canvas.width, canvas.height);
+                    maskCtx.fillStyle = 'black';
+                    maskCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
                 }
+                
+                // Apply feathering to mask
+                if (featherRadius > 0) {
+                    maskCtx.filter = `blur(${featherRadius}px)`;
+                    const tempMask = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+                    maskCtx.filter = 'none';
+                    maskCtx.putImageData(tempMask, 0, 0);
+                }
+                
+                // Composite: blend original and blurred using mask
+                const originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const blurredImageData = blurredCtx.getImageData(0, 0, canvas.width, canvas.height);
+                const maskData = maskCtx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                for (let i = 0; i < originalData.data.length; i += 4) {
+                    const maskValue = maskData.data[i] / 255; // 0 to 1
+                    
+                    // Blend based on mask value
+                    originalData.data[i] = originalData.data[i] * (1 - maskValue) + blurredImageData.data[i] * maskValue;
+                    originalData.data[i + 1] = originalData.data[i + 1] * (1 - maskValue) + blurredImageData.data[i + 1] * maskValue;
+                    originalData.data[i + 2] = originalData.data[i + 2] * (1 - maskValue) + blurredImageData.data[i + 2] * maskValue;
+                }
+                
+                ctx.putImageData(originalData, 0, 0);
                 
                 // Update image
                 const blurredImage = canvas.toDataURL('image/jpeg', 0.95);
@@ -1785,6 +1825,11 @@
             // Selective blur strength slider update
             document.getElementById('selective-blur-strength').addEventListener('input', function() {
                 this.nextElementSibling.textContent = this.value;
+            });
+            
+            // Feather radius slider update
+            document.getElementById('feather-radius').addEventListener('input', function() {
+                this.nextElementSibling.textContent = this.value + 'px';
             });
             document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
             document.getElementById('undo-enhancement-button').addEventListener('click', handleUndoEnhancement);
