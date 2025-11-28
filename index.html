@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhotoJS: Modern Image Editor</title>
+    <title>Image Editor - Professional Photo Editing</title>
     <!-- Load Inter font for a clean, modern look -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
         /* Define a cleaner, modern color palette and font */
         :root {
-            /* Palette */
-            --color-bg-primary: #121212; /* Very Dark Gray */
-            --color-bg-secondary: #1e1e1e; /* Lighter Dark Gray for panels */
-            --color-accent: #00bcd4; /* Cyan/Teal Accent */
-            --color-text-light: #f0f0f0;
-            --color-text-dim: #999;
-            --color-shadow: rgba(0, 0, 0, 0.6);
+            /* Premium Color Palette - Matching Reference Image */
+            --color-bg-primary: #0d0d0d; /* Almost Black */
+            --color-bg-secondary: #1a1a1a; /* Dark Gray */
+            --color-bg-tertiary: #222222; /* Lighter Dark Gray */
+            --color-accent: #d4a574; /* Golden/Tan */
+            --color-accent-hover: #e0b685; /* Lighter Golden */
+            --color-text-light: #ffffff;
+            --color-text-dim: #999999;
+            --color-text-dimmer: #666666;
+            --color-border: #2a2a2a;
+            --color-shadow: rgba(0, 0, 0, 0.9);
 
             /* Image Variables */ 
             --image-opacity: 1;
@@ -50,50 +54,56 @@
 
         /* --- SIDEBAR CONTROLS --- */
         .sidebar {
-            width: 300px;
+            width: 320px;
             background-color: var(--color-bg-secondary);
             overflow-y: auto;
-            border-right: 1px solid #333;
-            box-shadow: 2px 0 10px var(--color-shadow);
+            border-right: 1px solid var(--color-border);
+            box-shadow: 4px 0 20px var(--color-shadow);
             flex-shrink: 0;
             padding-bottom: 20px;
         }
 
         .header {
-            padding: 20px;
-            background-color: #121212;
-            border-bottom: 2px solid var(--color-accent);
+            padding: 24px 20px;
+            background-color: var(--color-bg-primary);
+            border-bottom: 1px solid #2a2a2a;
             text-align: center;
-            font-weight: 800;
-            font-size: 1.5rem;
-            letter-spacing: 1px;
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
             text-transform: uppercase;
+            color: var(--color-text-light);
         }
 
         /* Accordion Section Styles */
         .control-section {
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #2a2a2a;
         }
 
         .section-header {
-            padding: 15px 20px;
+            padding: 16px 20px;
             cursor: pointer;
-            background-color: #252525;
+            background-color: var(--color-bg-secondary);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-weight: 600;
+            font-weight: 500;
+            font-size: 0.95rem;
             transition: background-color 0.2s, color 0.2s;
+            color: var(--color-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .section-header:hover {
-            background-color: #333;
-            color: var(--color-accent);
+            background-color: #252525;
+            color: var(--color-text-light);
         }
 
         .section-header.active {
-            background-color: var(--color-accent);
-            color: var(--color-bg-primary);
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-light);
+            border-left: 3px solid var(--color-accent);
         }
         
         .section-header.active .arrow {
@@ -110,19 +120,20 @@
             overflow: hidden;
             transition: max-height 0.4s ease-out;
             padding: 0 20px;
+            background-color: var(--color-bg-tertiary);
         }
 
         .section-content.open {
             /* Set a sufficient height that covers all content */
             max-height: 1000px; 
-            padding: 15px 20px;
+            padding: 20px 24px;
         }
 
         /* SLIDER GROUP STYLES */
         .control-group {
-            margin-bottom: 15px;
-            padding: 10px 0;
-            border-bottom: 1px dashed #333;
+            margin-bottom: 18px;
+            padding: 12px 0;
+            border-bottom: 1px solid #252525;
         }
         .control-group:last-child {
             border-bottom: none;
@@ -132,10 +143,12 @@
 
         label {
             display: block;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             color: var(--color-text-dim);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .slider-wrapper {
@@ -146,34 +159,51 @@
         input[type="range"] {
             appearance: none;
             width: 100%;
-            height: 8px;
-            background: #444;
-            border-radius: 4px;
+            height: 6px;
+            background: #333333;
+            border-radius: 3px;
             cursor: pointer;
-            margin-right: 10px;
+            margin-right: 12px;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             background: var(--color-accent);
             border-radius: 50%;
             cursor: grab;
-            box-shadow: 0 0 5px var(--color-accent);
-            transition: background 0.2s;
+            box-shadow: 0 0 8px rgba(212, 165, 116, 0.4);
+            transition: background 0.2s, box-shadow 0.2s;
         }
 
         input[type="range"]::-webkit-slider-thumb:hover {
-            background: #00e5ff;
+            background: var(--color-accent-hover);
+            box-shadow: 0 0 12px rgba(212, 165, 116, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: var(--color-accent);
+            border-radius: 50%;
+            border: none;
+            cursor: grab;
+            box-shadow: 0 0 8px rgba(212, 165, 116, 0.4);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: var(--color-accent-hover);
+            box-shadow: 0 0 12px rgba(212, 165, 116, 0.6);
         }
 
         .value-display {
-            min-width: 40px;
+            min-width: 45px;
             text-align: right;
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 500;
             color: var(--color-text-light);
         }
 
@@ -181,56 +211,64 @@
         .button-group {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
             margin-top: 10px;
         }
 
         .style-button {
-            background: #333;
-            color: var(--color-text-light);
-            border: 1px solid #444;
-            padding: 8px 12px;
-            border-radius: 6px;
+            background: #2a2a2a;
+            color: var(--color-text-dim);
+            border: 1px solid #3a3a3a;
+            padding: 10px 14px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
-            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            font-size: 0.8rem;
             flex-grow: 1;
             min-width: 80px;
             text-align: center;
+            font-weight: 500;
         }
 
         .style-button:hover {
-            background: #444;
+            background: #333333;
+            color: var(--color-text-light);
+            border-color: #4a4a4a;
         }
 
         .style-button.active {
             background: var(--color-accent);
-            color: var(--color-bg-primary);
+            color: #0d0d0d;
             border-color: var(--color-accent);
-            box-shadow: 0 0 8px rgba(0, 188, 212, 0.6);
+            box-shadow: 0 0 12px rgba(212, 165, 116, 0.3);
+            font-weight: 600;
         }
         
         /* Input file button styling */
         .upload-wrapper {
-            padding: 20px;
-            border-bottom: 1px solid #333;
+            padding: 24px 20px;
+            border-bottom: 1px solid #2a2a2a;
             text-align: center;
         }
         .upload-label {
             display: inline-block;
             background-color: var(--color-accent);
-            color: var(--color-bg-primary);
-            padding: 10px 20px;
-            border-radius: 6px;
+            color: #0d0d0d;
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            transition: background-color 0.2s, transform 0.1s;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(212, 165, 116, 0.2);
         }
         .upload-label:hover {
-            background-color: #00e5ff;
+            background-color: var(--color-accent-hover);
+            box-shadow: 0 4px 12px rgba(212, 165, 116, 0.3);
+            transform: translateY(-1px);
         }
         .upload-label:active {
-            transform: scale(0.98);
+            transform: translateY(0);
         }
         #image-upload {
             display: none;
@@ -240,18 +278,21 @@
         #reset-button {
             width: 100%;
             padding: 10px;
-            background-color: #e53935;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
+            background-color: #2a2a2a;
+            color: var(--color-text-dim);
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.85rem;
             cursor: pointer;
-            margin-top: 20px;
-            transition: background-color 0.2s;
+            margin-top: 16px;
+            transition: all 0.2s ease;
         }
 
         #reset-button:hover {
-            background-color: #f44336;
+            background-color: #d64545;
+            color: white;
+            border-color: #d64545;
         }
 
         /* --- IMAGE EDITOR AREA --- */
@@ -274,11 +315,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #000;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px var(--color-shadow);
+            background: #0a0a0a;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px var(--color-shadow);
             overflow: hidden;
             transition: opacity 0.3s;
+            border: 1px solid #1a1a1a;
         }
 
         #editor-image, #original-image {
@@ -325,7 +367,7 @@
                 width: 100%;
                 max-height: 50vh;
                 border-right: none;
-                border-bottom: 1px solid #333;
+                border-bottom: 1px solid #2a2a2a;
             }
             .editor-area {
                 height: 50vh;
@@ -336,6 +378,10 @@
                 height: 100%;
                 min-height: 250px;
             }
+            .header {
+                font-size: 1.1rem;
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -343,15 +389,15 @@
     <div class="editor-layout">
         <!-- Sidebar Controls -->
         <div class="sidebar">
-            <div class="header">PhotoJS Editor</div>
+            <div class="header">IMAGE EDITOR</div>
             
             <div class="upload-wrapper">
                 <input type="file" id="image-upload" accept="image/*">
                 <label for="image-upload" class="upload-label">
                     Upload Image
                 </label>
-                <div style="margin-top: 10px; color: var(--color-text-dim); font-size: 0.85rem;">
-                    (Or press Ctrl+V to paste image)
+                <div style="margin-top: 12px; color: var(--color-text-dimmer); font-size: 0.75rem; letter-spacing: 0.3px;">
+                    Or press Ctrl+V to paste image
                 </div>
                 <button id="reset-button">Reset All Adjustments</button>
             </div>
@@ -518,7 +564,7 @@
             </div>
 
             <!-- Download Button -->
-            <div style="padding: 20px;">
+            <div style="padding: 20px; border-top: 1px solid #2a2a2a;"></div>
                 <button id="download-button" class="upload-label" style="width: 100%;">Download Edited Image</button>
             </div>
             
@@ -529,7 +575,7 @@
             <!-- This container holds the image and applies CSS filters -->
             <div id="image-container">
                 <img id="editor-image" alt="Image being edited" 
-                    src="https://placehold.co/900x600/353535/FFFFFF?text=Upload+Image+or+Paste+(Ctrl+V)">
+                    src="https://placehold.co/900x600/0a0a0a/666666?text=Drag+%26+Drop+an+Image+or+Click+to+Upload">
                 <!-- Hidden canvas for rendering image with filters before download -->
                 <canvas id="render-canvas" style="display: none;"></canvas>
             </div>
