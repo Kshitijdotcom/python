@@ -97,6 +97,9 @@
             text-transform: uppercase;
             color: var(--color-text-light);
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
         .header::after {
@@ -107,6 +110,10 @@
             width: 40px;
             height: 2px;
             background: var(--color-accent);
+        }
+        
+        .header a:hover {
+            color: var(--color-accent) !important;
         }
 
         /* Accordion Section Styles */
@@ -514,7 +521,12 @@
     <div class="editor-layout">
         <!-- Sidebar Controls -->
         <div class="sidebar">
-            <div class="header">PHOTOCREST</div>
+            <div class="header">
+                <span>PHOTOCREST</span>
+                <a href="/logout" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: var(--color-text-dim); font-size: 0.75rem; text-decoration: none; font-weight: 500; letter-spacing: 1px; transition: color 0.3s;">
+                    LOGOUT
+                </a>
+            </div>
             
             <div class="upload-wrapper">
                 <input type="file" id="image-upload" accept="image/*">
