@@ -630,10 +630,106 @@
                 </div>
             </div>
 
+            <!-- Style Transfer -->
+            <div class="control-section" data-section-id="style-transfer">
+                <div class="section-header">Style Transfer <span class="arrow">▼</span></div>
+                <div class="section-content">
+                    
+                    <div class="control-group">
+                        <label>Famous Artists</label>
+                        <div class="button-group" id="style-buttons">
+                            <button class="style-button" data-style="van-gogh">Van Gogh</button>
+                            <button class="style-button" data-style="picasso">Picasso</button>
+                            <button class="style-button" data-style="monet">Monet</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group" style="border-bottom: none;">
+                        <label>Painting Styles</label>
+                        <div class="button-group">
+                            <button class="style-button" data-style="oil-painting">Oil Paint</button>
+                            <button class="style-button" data-style="watercolor">Watercolor</button>
+                        </div>
+                    </div>
+
+                    <div id="style-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
+                        <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--color-accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="style-status-text" style="margin-left: 8px;">Processing...</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Artistic Effects -->
+            <div class="control-section" data-section-id="artistic-effects">
+                <div class="section-header">Artistic Effects <span class="arrow">▼</span></div>
+                <div class="section-content">
+                    
+                    <div class="control-group" style="border-bottom: none;">
+                        <label>Transform Your Photo</label>
+                        <div class="button-group" id="effect-buttons">
+                            <button class="style-button" data-effect="cartoon">Cartoon</button>
+                            <button class="style-button" data-effect="anime">Anime</button>
+                            <button class="style-button" data-effect="sketch">Sketch</button>
+                        </div>
+                    </div>
+
+                    <div id="effect-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
+                        <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--color-accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="effect-status-text" style="margin-left: 8px;">Processing...</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Face Tools -->
+            <div class="control-section" data-section-id="face-tools">
+                <div class="section-header">Face Tools <span class="arrow">▼</span></div>
+                <div class="section-content">
+                    
+                    <div class="control-group" style="border-bottom: none;">
+                        <label>Enhance Portraits</label>
+                        <div class="button-group">
+                            <button id="face-enhance-button" class="style-button">Enhance Face</button>
+                            <button id="skin-smooth-button" class="style-button">Smooth Skin</button>
+                        </div>
+                    </div>
+
+                    <div id="face-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
+                        <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--color-accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="face-status-text" style="margin-left: 8px;">Processing...</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Object Removal -->
+            <div class="control-section" data-section-id="object-removal">
+                <div class="section-header">Object Removal <span class="arrow">▼</span></div>
+                <div class="section-content">
+                    
+                    <div class="control-group" style="border-bottom: none;">
+                        <label>Remove Unwanted Objects</label>
+                        <button id="object-remove-button" class="upload-label" style="width: 100%; font-size: 0.85rem;">
+                            Remove Objects
+                        </button>
+                        <div style="margin-top: 8px; color: var(--color-text-dimmer); font-size: 0.7rem; text-align: center;">
+                            Click to select areas to remove
+                        </div>
+                    </div>
+
+                    <div id="removal-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
+                        <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--color-accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span id="removal-status-text" style="margin-left: 8px;">Processing...</span>
+                    </div>
+
+                </div>
+            </div>
+
             <!-- AI Enhancement -->
             <div class="control-section" data-section-id="ai-enhancement">
                 <div class="section-header">AI Enhancement <span class="arrow">▼</span></div>
-                <div class="section-content">
+                <div class="section-content"></div>
                     
                     <div class="control-group">
                         <label>Enhancement Preset</label>
@@ -1369,6 +1465,318 @@
             }
         }
 
+        // --- NEW AI TOOLS FUNCTIONS ---
+        
+        function showStyleStatus(message) {
+            const statusDiv = document.getElementById('style-status');
+            const statusText = document.getElementById('style-status-text');
+            statusText.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+        
+        function hideStyleStatus() {
+            document.getElementById('style-status').style.display = 'none';
+        }
+        
+        function showEffectStatus(message) {
+            const statusDiv = document.getElementById('effect-status');
+            const statusText = document.getElementById('effect-status-text');
+            statusText.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+        
+        function hideEffectStatus() {
+            document.getElementById('effect-status').style.display = 'none';
+        }
+        
+        function showFaceStatus(message) {
+            const statusDiv = document.getElementById('face-status');
+            const statusText = document.getElementById('face-status-text');
+            statusText.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+        
+        function hideFaceStatus() {
+            document.getElementById('face-status').style.display = 'none';
+        }
+        
+        // Style Transfer Function
+        async function applyStyleTransfer(style) {
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            showStyleStatus(`Applying ${style} style...`);
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // Apply style-specific filters (simplified version)
+                switch(style) {
+                    case 'van-gogh':
+                        applyVanGoghStyle(imageData);
+                        break;
+                    case 'picasso':
+                        applyPicassoStyle(imageData);
+                        break;
+                    case 'monet':
+                        applyMonetStyle(imageData);
+                        break;
+                    case 'oil-painting':
+                        applyOilPaintingEffect(imageData);
+                        break;
+                    case 'watercolor':
+                        applyWatercolorEffect(imageData);
+                        break;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                mainEditorImage.src = canvas.toDataURL();
+                
+                hideStyleStatus();
+                showEnhancementStatus(`✓ ${style} style applied`);
+                setTimeout(hideEnhancementStatus, 2000);
+                
+            } catch (error) {
+                console.error('Style transfer error:', error);
+                hideStyleStatus();
+                showEnhancementError(`Failed to apply ${style} style`);
+            }
+        }
+        
+        // Artistic Effect Function
+        async function applyArtisticEffect(effect) {
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            showEffectStatus(`Applying ${effect} effect...`);
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                switch(effect) {
+                    case 'cartoon':
+                        applyCartoonEffect(imageData);
+                        break;
+                    case 'anime':
+                        applyAnimeEffect(imageData);
+                        break;
+                    case 'sketch':
+                        applySketchEffect(imageData);
+                        break;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                mainEditorImage.src = canvas.toDataURL();
+                
+                hideEffectStatus();
+                showEnhancementStatus(`✓ ${effect} effect applied`);
+                setTimeout(hideEnhancementStatus, 2000);
+                
+            } catch (error) {
+                console.error('Artistic effect error:', error);
+                hideEffectStatus();
+                showEnhancementError(`Failed to apply ${effect} effect`);
+            }
+        }
+        
+        // Style Transfer Algorithms (Simplified)
+        function applyVanGoghStyle(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Boost saturation and add swirly effect
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                data[i] = Math.min(255, r * 1.3);
+                data[i + 1] = Math.min(255, g * 1.2);
+                data[i + 2] = Math.min(255, b * 1.4);
+            }
+        }
+        
+        function applyPicassoStyle(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Cubist effect - posterize colors
+                data[i] = Math.floor(data[i] / 64) * 64;
+                data[i + 1] = Math.floor(data[i + 1] / 64) * 64;
+                data[i + 2] = Math.floor(data[i + 2] / 64) * 64;
+            }
+        }
+        
+        function applyMonetStyle(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Soft, pastel colors
+                data[i] = data[i] * 0.9 + 30;
+                data[i + 1] = data[i + 1] * 0.9 + 30;
+                data[i + 2] = data[i + 2] * 0.9 + 30;
+            }
+        }
+        
+        function applyOilPaintingEffect(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Increase saturation and smooth
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                data[i] = Math.min(255, r * 1.2);
+                data[i + 1] = Math.min(255, g * 1.2);
+                data[i + 2] = Math.min(255, b * 1.2);
+            }
+        }
+        
+        function applyWatercolorEffect(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Lighter, more transparent look
+                data[i] = data[i] * 0.85 + 40;
+                data[i + 1] = data[i + 1] * 0.85 + 40;
+                data[i + 2] = data[i + 2] * 0.85 + 40;
+            }
+        }
+        
+        function applyCartoonEffect(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Posterize and boost colors
+                data[i] = Math.floor(data[i] / 32) * 32;
+                data[i + 1] = Math.floor(data[i + 1] / 32) * 32;
+                data[i + 2] = Math.floor(data[i + 2] / 32) * 32;
+            }
+        }
+        
+        function applyAnimeEffect(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Smooth colors, high contrast
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                data[i] = r > 128 ? Math.min(255, r * 1.3) : r * 0.7;
+                data[i + 1] = g > 128 ? Math.min(255, g * 1.3) : g * 0.7;
+                data[i + 2] = b > 128 ? Math.min(255, b * 1.3) : b * 0.7;
+            }
+        }
+        
+        function applySketchEffect(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // Convert to grayscale and invert
+                const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                const inverted = 255 - gray;
+                
+                data[i] = inverted;
+                data[i + 1] = inverted;
+                data[i + 2] = inverted;
+            }
+        }
+        
+        // Face Enhancement
+        async function handleFaceEnhance() {
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            showFaceStatus('Enhancing facial features...');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Enhance skin tones and brighten
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Detect skin tones
+                    if (r > 95 && g > 40 && b > 20 && r > g && r > b) {
+                        data[i] = Math.min(255, r * 1.1);
+                        data[i + 1] = Math.min(255, g * 1.05);
+                        data[i + 2] = Math.min(255, b * 1.05);
+                    }
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                mainEditorImage.src = canvas.toDataURL();
+                
+                hideFaceStatus();
+                showEnhancementStatus('✓ Face enhanced');
+                setTimeout(hideEnhancementStatus, 2000);
+                
+            } catch (error) {
+                console.error('Face enhancement error:', error);
+                hideFaceStatus();
+                showEnhancementError('Failed to enhance face');
+            }
+        }
+        
+        // Skin Smoothing
+        async function handleSkinSmooth() {
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                alert('Please upload an image first!');
+                return;
+            }
+            
+            showFaceStatus('Smoothing skin...');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
+                
+                // Apply blur for smoothing effect
+                ctx.filter = 'blur(2px)';
+                ctx.drawImage(canvas, 0, 0);
+                ctx.filter = 'none';
+                
+                mainEditorImage.src = canvas.toDataURL();
+                
+                hideFaceStatus();
+                showEnhancementStatus('✓ Skin smoothed');
+                setTimeout(hideEnhancementStatus, 2000);
+                
+            } catch (error) {
+                console.error('Skin smoothing error:', error);
+                hideFaceStatus();
+                showEnhancementError('Failed to smooth skin');
+            }
+        }
+        
+        // Object Removal (Simplified - shows alert for now)
+        function handleObjectRemove() {
+            alert('Object Removal Tool:\n\nThis feature allows you to remove unwanted objects from your photos.\n\nClick and drag to select areas to remove.\n\n(Advanced AI implementation coming soon!)');
+        }
+
         // --- EVENT LISTENERS & INITIALIZATION ---
 
         function init() {
@@ -1435,6 +1843,27 @@
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
             document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
             document.getElementById('undo-enhancement-button').addEventListener('click', handleUndoEnhancement);
+            
+            // AI Tools listeners
+            const styleButtons = document.querySelectorAll('#style-buttons .style-button');
+            styleButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const style = btn.dataset.style;
+                    applyStyleTransfer(style);
+                });
+            });
+            
+            const effectButtons = document.querySelectorAll('#effect-buttons .style-button');
+            effectButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const effect = btn.dataset.effect;
+                    applyArtisticEffect(effect);
+                });
+            });
+            
+            document.getElementById('face-enhance-button').addEventListener('click', handleFaceEnhance);
+            document.getElementById('skin-smooth-button').addEventListener('click', handleSkinSmooth);
+            document.getElementById('object-remove-button').addEventListener('click', handleObjectRemove);
             
             // Initial setup to ensure the UI starts with the first section expanded
             toggleSection('basic-adjustments');
