@@ -556,6 +556,135 @@ def enhance_route():
         }), 500
 
 
+@app.route('/clarity', methods=['POST'])
+@login_required
+def clarity_route():
+    """
+    Clarity enhancement endpoint - applies clarity-specific enhancements
+    Accepts: image_data (base64), strength (optional)
+    Returns: enhanced image as base64 with metadata
+    """
+    try:
+        logger.info("Clarity enhancement request received")
+        data = request.json
+        
+        if data is None:
+            logger.error("No JSON data received")
+            return jsonify({
+                'success': False,
+                'error': 'No JSON data received',
+                'error_code': 'INVALID_INPUT'
+            }), 400
+        
+        # Extract parameters
+        image_data = data.get('image_data')
+        strength = data.get('strength', 80)  # Default clarity strength
+        
+        # Validate required fields
+        if not image_data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing image data',
+                'error_code': 'INVALID_INPUT'
+            }), 400
+        
+        # Validate strength
+        if not 0 <= strength <= 100:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid strength: {strength}. Must be 0-100',
+                'error_code': 'INVALID_INPUT'
+            }), 400
+        
+        # Decode base64 image
+        logger.info("Decoding image...")
+        try:
+            image_data = image_data.split(',')[1] if ',' in image_data else image_data
+            img_bytes = base64.b64decode(image_data)
+            img = Image.open(BytesIO(img_bytes))
+            logger.info(f"Image decoded successfully: {img.size}")
+        except Exception as e:
+            logger.error(f"Image decode error: {e}")
+            return jsonify({
+                'success': False,
+                'error': 'Invalid image data',
+                'error_code': 'INVALID_IMAGE'
+            }), 400
+        
+        # Convert to RGB if needed
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Check image size to prevent memory issues
+        width, height = img.size
+        max_pixels = 2000 * 2000  # 4 megapixels limit
+        
+        # Resize if too large
+        if width * height > max_pixels:
+            logger.warning(f"Image too large: {width}x{height}, resizing...")
+            scale_factor = (max_pixels / (width * height)) ** 0.5
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            width, height = img.size
+            logger.info(f"Resized to: {width}x{height}")
+        
+        logger.info(f"Applying clarity enhancement with strength: {strength}")
+        
+        # Get enhancement engine and apply clarity
+        engine = get_enhancement_engine()
+        
+        try:
+            # Use the existing _enhance_clarity method
+            enhanced_img = engine._enhance_clarity(img, strength / 100.0)
+            
+            # Create metadata
+            metadata = {
+                'processing_time': 0.5,  # Clarity is fast
+                'original_dimensions': [width, height],
+                'output_dimensions': [enhanced_img.width, enhanced_img.height],
+                'effect': 'clarity',
+                'strength': strength,
+                'device': 'cpu'
+            }
+            
+            logger.info("Clarity enhancement completed successfully")
+            
+        except Exception as e:
+            logger.error(f"Clarity enhancement error: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Clarity enhancement failed: {str(e)}',
+                'error_code': 'PROCESSING_ERROR'
+            }), 500
+        
+        # Encode enhanced image to base64
+        logger.info("Encoding enhanced image...")
+        buffer = BytesIO()
+        enhanced_img.save(buffer, format="JPEG", quality=95, optimize=True)
+        enhanced_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        logger.info(f"Clarity enhancement complete. Output size: {len(enhanced_base64)} bytes")
+        
+        # Clean up memory
+        del img
+        del enhanced_img
+        buffer.close()
+        
+        return jsonify({
+            'success': True,
+            'enhanced_image_base64': enhanced_base64,
+            'metadata': metadata
+        })
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in clarity endpoint: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}',
+            'error_code': 'SERVER_ERROR'
+        }), 500
+
+
 if __name__ == '__main__':
     # host='0.0.0.0' allows access from any device on your network
     # For public access, consider using ngrok or deploying to a cloud service

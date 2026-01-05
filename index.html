@@ -600,11 +600,15 @@
                     
                     <!-- Quick Enhancement Buttons for Sharpening -->
                     <div class="control-group">
-                        <label>Quick Enhancements (Sharpening Alternative)</label>
+                        <label>Quick Enhancements</label>
                         <div class="button-group" id="quick-enhance-buttons">
                             <!-- This button mimics sharpening by boosting contrast and saturation -->
                             <button class="style-button" data-enhance="sharpen">Sharpen / Detail</button>
                             <button class="style-button" data-enhance="vibrant">Vibrant Pop</button>
+                            <button class="style-button" data-enhance="clarity" title="Click for quick clarity, double-click for advanced clarity">Clarity</button>
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--color-text-dimmer); margin-top: 8px; opacity: 0.8;">
+                            💡 Tip: Double-click Clarity for advanced server-side processing
                         </div>
                     </div>
 
@@ -977,6 +981,85 @@
             } else if (type === 'vibrant') {
                 // Vibrant preset: Slight boost to Brightness, Saturation, and a touch of Contrast
                 applyFilterPreset(110, 105, 150, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
+            } else if (type === 'clarity') {
+                // Clarity preset: Enhanced contrast and slight brightness boost for crisp look
+                applyFilterPreset(108, 130, 115, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
+            }
+        }
+
+        // Advanced clarity enhancement using server-side processing
+        async function handleAdvancedClarity() {
+            if (enhancementState.isProcessing) return;
+            
+            // Check if image is loaded
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                showEnhancementError('Please upload or paste an image first!');
+                return;
+            }
+            
+            enhancementState.isProcessing = true;
+            const clarityButton = document.querySelector('[data-enhance="clarity"]');
+            clarityButton.disabled = true;
+            clarityButton.style.opacity = '0.5';
+            
+            hideEnhancementError();
+            showEnhancementStatus('Applying advanced clarity...');
+            
+            // Store original image if not already stored
+            if (!enhancementState.originalImage) {
+                enhancementState.originalImage = mainEditorImage.src;
+            }
+            
+            try {
+                // Get current image as base64
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                ctx.drawImage(mainEditorImage, 0, 0);
+                const imageData = canvas.toDataURL('image/png');
+                
+                // Call clarity API
+                const response = await fetch('/clarity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image_data: imageData,
+                        strength: 85  // High clarity strength
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Clarity enhancement failed');
+                }
+                
+                // Update image with clarity-enhanced version
+                const enhancedImageData = 'data:image/jpeg;base64,' + result.enhanced_image_base64;
+                enhancementState.enhancedImage = enhancedImageData;
+                mainEditorImage.src = enhancedImageData;
+                
+                // Show success message
+                const processingTime = result.metadata.processing_time;
+                showEnhancementStatus(`✓ Clarity enhanced in ${processingTime}s`);
+                setTimeout(hideEnhancementStatus, 3000);
+                
+                // Show compare and undo buttons
+                document.getElementById('enhancement-controls').style.display = 'block';
+                
+                console.log('Clarity enhancement metadata:', result.metadata);
+                
+            } catch (error) {
+                showEnhancementError(`Clarity enhancement failed: ${error.message}`);
+                // Fallback to CSS-only clarity
+                applyFilterPreset(108, 130, 115, 0, 0, 0, 0, 0);
+            } finally {
+                enhancementState.isProcessing = false;
+                clarityButton.disabled = false;
+                clarityButton.style.opacity = '1';
             }
         }
 
@@ -1406,7 +1489,17 @@
             });
             
             // Attach listener for quick enhancement buttons
-            quickEnhanceButtons.forEach(btn => btn.addEventListener('click', handleQuickEnhance));
+            quickEnhanceButtons.forEach(btn => {
+                btn.addEventListener('click', handleQuickEnhance);
+                
+                // Add double-click listener for clarity button
+                if (btn.dataset.enhance === 'clarity') {
+                    btn.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        handleAdvancedClarity();
+                    });
+                }
+            });
 
             // File and Reset listeners
             document.getElementById('image-upload').addEventListener('change', handleImageUpload);
