@@ -432,11 +432,54 @@
         .editor-area {
             flex-grow: 1;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 20px;
             position: relative;
             overflow: auto; /* Allow scrolling if image is huge */
+        }
+
+        /* Preview Toggle Controls */
+        .preview-controls {
+            display: none;
+            margin-bottom: 15px;
+            padding: 8px 16px;
+            background: var(--color-bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+        }
+
+        .preview-controls.show {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .preview-toggle {
+            background: var(--color-bg-primary);
+            color: var(--color-text-dim);
+            border: 1px solid #2a2a2a;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-toggle:hover {
+            background: #1a1a1a;
+            color: var(--color-text-light);
+            border-color: #3a3a3a;
+        }
+
+        .preview-toggle.active {
+            background: var(--color-accent);
+            color: var(--color-bg-primary);
+            border-color: var(--color-accent);
         }
 
         #image-container {
@@ -457,6 +500,106 @@
         
         #image-container:hover {
             box-shadow: 0 28px 72px var(--color-shadow), 0 0 0 1px rgba(201, 169, 97, 0.2);
+        }
+
+        /* Before/After Split View Styles */
+        .split-view-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: none; /* Hidden by default */
+        }
+
+        .split-view-container.active {
+            display: block;
+        }
+
+        .split-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            user-select: none;
+        }
+
+        .split-image.original {
+            z-index: 1;
+        }
+
+        .split-image.edited {
+            z-index: 2;
+            clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);
+            transition: clip-path 0.1s ease;
+        }
+
+        .split-slider {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 3px;
+            height: 100%;
+            background: var(--color-accent);
+            cursor: ew-resize;
+            z-index: 3;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px rgba(201, 169, 97, 0.5);
+        }
+
+        .split-slider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: var(--color-accent);
+            border: 2px solid var(--color-bg-primary);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 8px rgba(201, 169, 97, 0.5);
+        }
+
+        .split-slider::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -10px;
+            width: 23px;
+            height: 100%;
+            cursor: ew-resize;
+        }
+
+        .split-labels {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        .split-label {
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--color-text-light);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .split-label.original {
+            background: rgba(229, 57, 53, 0.8);
+        }
+
+        .split-label.edited {
+            background: rgba(201, 169, 97, 0.8);
         }
 
         #editor-image, #original-image {
@@ -525,6 +668,14 @@
                 height: 50vh;
                 padding: 10px;
             }
+            .preview-controls {
+                margin-bottom: 10px;
+                padding: 6px 12px;
+            }
+            .preview-toggle {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
             #image-container {
                 width: 100%;
                 height: 100%;
@@ -533,6 +684,14 @@
             .header {
                 font-size: 1.1rem;
                 padding: 20px;
+            }
+            .split-labels {
+                bottom: 5px;
+                padding: 0 10px;
+            }
+            .split-label {
+                font-size: 0.6rem;
+                padding: 2px 6px;
             }
         }
     </style>
@@ -744,12 +903,32 @@
             
         </div>
 
-        <!-- Editor Area -->
+        /* Editor Area */
         <div class="editor-area">
+            <!-- Preview Controls -->
+            <div class="preview-controls" id="preview-controls">
+                <span style="font-size: 0.75rem; color: var(--color-text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Preview Mode:</span>
+                <button class="preview-toggle active" id="normal-view">Normal</button>
+                <button class="preview-toggle" id="split-view">Before/After</button>
+            </div>
+
             <!-- This container holds the image and applies CSS filters -->
             <div id="image-container">
+                <!-- Normal View (default) -->
                 <img id="editor-image" alt="Image being edited" 
                     src="https://placehold.co/900x600/0a0a0a/666666?text=Drag+%26+Drop+an+Image+or+Click+to+Upload">
+                
+                <!-- Split View Container -->
+                <div class="split-view-container" id="split-view-container">
+                    <img class="split-image original" id="split-original" alt="Original image">
+                    <img class="split-image edited" id="split-edited" alt="Edited image">
+                    <div class="split-slider" id="split-slider"></div>
+                    <div class="split-labels">
+                        <span class="split-label original">Original</span>
+                        <span class="split-label edited">Edited</span>
+                    </div>
+                </div>
+                
                 <!-- Hidden canvas for rendering image with filters before download -->
                 <canvas id="render-canvas" style="display: none;"></canvas>
             </div>
@@ -763,6 +942,20 @@
         const renderCanvas = document.getElementById('render-canvas');
         const inputs = document.querySelectorAll('input[type="range"]'); 
         const quickEnhanceButtons = document.querySelectorAll('#quick-enhance-buttons .style-button');
+        
+        // Split View Elements
+        const previewControls = document.getElementById('preview-controls');
+        const normalViewBtn = document.getElementById('normal-view');
+        const splitViewBtn = document.getElementById('split-view');
+        const splitViewContainer = document.getElementById('split-view-container');
+        const splitOriginal = document.getElementById('split-original');
+        const splitEdited = document.getElementById('split-edited');
+        const splitSlider = document.getElementById('split-slider');
+        
+        // Split View State
+        let splitViewActive = false;
+        let originalImageSrc = null;
+        let isDragging = false;
         
         // Undo/Redo History Management
         const historyManager = {
@@ -924,6 +1117,84 @@
         
         // --- UTILITY FUNCTIONS ---
         
+        // Split View Functions
+        function toggleSplitView(enable) {
+            splitViewActive = enable;
+            
+            if (enable) {
+                // Show split view
+                mainEditorImage.style.display = 'none';
+                splitViewContainer.classList.add('active');
+                normalViewBtn.classList.remove('active');
+                splitViewBtn.classList.add('active');
+                
+                // Update split images
+                updateSplitView();
+            } else {
+                // Show normal view
+                mainEditorImage.style.display = 'block';
+                splitViewContainer.classList.remove('active');
+                normalViewBtn.classList.add('active');
+                splitViewBtn.classList.remove('active');
+            }
+        }
+        
+        function updateSplitView() {
+            if (!splitViewActive || !originalImageSrc) return;
+            
+            // Set original image (no filters)
+            splitOriginal.src = originalImageSrc;
+            
+            // Create edited version by applying current filters to a canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Wait for original image to load, then create filtered version
+            splitOriginal.onload = function() {
+                canvas.width = splitOriginal.naturalWidth;
+                canvas.height = splitOriginal.naturalHeight;
+                
+                // Apply current CSS filters to canvas context
+                const currentFilter = getComputedStyle(mainEditorImage).filter;
+                const currentOpacity = getComputedStyle(mainEditorImage).opacity;
+                
+                ctx.filter = currentFilter;
+                ctx.globalAlpha = parseFloat(currentOpacity);
+                
+                // Draw the filtered image
+                ctx.drawImage(splitOriginal, 0, 0);
+                
+                // Set the edited image source
+                splitEdited.src = canvas.toDataURL('image/png');
+            };
+        }
+        
+        function handleSplitSliderDrag(e) {
+            if (!isDragging || !splitViewActive) return;
+            
+            const container = document.getElementById('image-container');
+            const rect = container.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+            
+            // Update slider position
+            splitSlider.style.left = percentage + '%';
+            
+            // Update clip path for edited image
+            splitEdited.style.clipPath = `polygon(${percentage}% 0%, 100% 0%, 100% 100%, ${percentage}% 100%)`;
+        }
+        
+        function showPreviewControls() {
+            if (originalImageSrc && !mainEditorImage.src.includes('placehold.co')) {
+                previewControls.classList.add('show');
+            }
+        }
+        
+        function hidePreviewControls() {
+            previewControls.classList.remove('show');
+            toggleSplitView(false);
+        }
+        
         // Helper function to update slider values and CSS based on preset
         function applyFilterPreset(b, c, s, h, gr, sep, inv, bl) {
             const filters = [
@@ -1004,6 +1275,11 @@
             // Remove active state from enhancement buttons if a manual slider is used
             if(input.closest('#quick-enhance-buttons') === null) {
                 quickEnhanceButtons.forEach(btn => btn.classList.remove('active'));
+            }
+            
+            // Update split view if active
+            if (splitViewActive) {
+                updateSplitView();
             }
             
             // Save to history (debounced)
@@ -1128,10 +1404,21 @@
             
             // Clear history for new image
             historyManager.clearHistory();
+            
+            // Store original image source for split view
+            originalImageSrc = imageUrl;
 
             mainEditorImage.onload = () => {
                 document.getElementById('image-container').style.opacity = '1';
                 console.log("Image loaded successfully.");
+                
+                // Show preview controls
+                showPreviewControls();
+                
+                // Update split view if active
+                if (splitViewActive) {
+                    updateSplitView();
+                }
                 
                 // Initialize history with clean state
                 historyManager.initialize();
@@ -1140,6 +1427,11 @@
             mainEditorImage.onerror = () => {
                 console.error("Error loading image. Check URL or file integrity.");
                 document.getElementById('image-container').style.opacity = '1';
+                
+                // Hide preview controls on error
+                hidePreviewControls();
+                originalImageSrc = null;
+                
                 // Fallback to placeholder on error
                 mainEditorImage.src = 'https://placehold.co/900x600/FF0000/FFFFFF?text=Image+Load+Failed';
             };
@@ -1719,15 +2011,30 @@
             document.getElementById('reset-button').addEventListener('click', () => {
                 resetAdjustments();
                 historyManager.saveState('reset_all');
+                
+                // Update split view if active
+                if (splitViewActive) {
+                    updateSplitView();
+                }
             });
             
             // Undo/Redo listeners
             document.getElementById('undo-button').addEventListener('click', () => {
                 historyManager.undo();
+                
+                // Update split view if active
+                if (splitViewActive) {
+                    updateSplitView();
+                }
             });
             
             document.getElementById('redo-button').addEventListener('click', () => {
                 historyManager.redo();
+                
+                // Update split view if active
+                if (splitViewActive) {
+                    updateSplitView();
+                }
             });
             
             // Keyboard shortcuts for undo/redo
@@ -1736,11 +2043,21 @@
                 if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
                     e.preventDefault();
                     historyManager.undo();
+                    
+                    // Update split view if active
+                    if (splitViewActive) {
+                        updateSplitView();
+                    }
                 }
                 // Ctrl+Y or Ctrl+Shift+Z for redo
                 if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
                     e.preventDefault();
                     historyManager.redo();
+                    
+                    // Update split view if active
+                    if (splitViewActive) {
+                        updateSplitView();
+                    }
                 }
             });
             
@@ -1751,6 +2068,37 @@
             document.addEventListener('focus', () => {
                 console.log('Document has focus - paste should work');
             }, true);
+            
+            // Split View Event Listeners
+            normalViewBtn.addEventListener('click', () => {
+                toggleSplitView(false);
+            });
+            
+            splitViewBtn.addEventListener('click', () => {
+                toggleSplitView(true);
+            });
+            
+            // Split slider drag functionality
+            splitSlider.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                e.preventDefault();
+            });
+            
+            splitSlider.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', handleSplitSliderDrag);
+            document.addEventListener('touchmove', handleSplitSliderDrag);
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
             
             // AI Enhancement listeners
             const presetButtons = document.querySelectorAll('#preset-buttons .style-button');
