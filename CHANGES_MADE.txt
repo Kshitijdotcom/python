@@ -1,0 +1,13 @@
+CHANGES MADE TO PROJECT:
+
+1. Added Clear Image button (🗑️) - appears when image is loaded
+2. Updated download filename from PhotoJS to PhotoCrest
+3. Added comprehensive image clearing functionality
+4. Updated cache-busting headers
+
+Files Modified:
+- index.html (multiple lines updated)
+- backup/index_backup.html (updated for consistency)
+
+Date: 2025-01-12
+Status: Ready for commit
