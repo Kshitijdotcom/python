@@ -134,7 +134,7 @@ def handle_exception(e):
 # --- Core Image Fetching and Decoding Logic ---
 
 def decode_base64_image(image_data):
-    """Decodes base64 string into a PIL Image object."""
+    """Decodes base64 string into a PIL Image object with mobile image support."""
     try:
         # Remove header (e.g., 'data:image/png;base64,')
         if ',' in image_data:
@@ -143,10 +143,43 @@ def decode_base64_image(image_data):
              encoded_data = image_data
 
         binary_data = base64.b64decode(encoded_data)
+        
+        # Open image with PIL
+        img = Image.open(BytesIO(binary_data))
+        
+        # Handle EXIF orientation (common issue with mobile photos)
+        try:
+            from PIL import ExifTags
+            if hasattr(img, '_getexif') and img._getexif() is not None:
+                exif = img._getexif()
+                for tag, value in exif.items():
+                    if tag in ExifTags.TAGS and ExifTags.TAGS[tag] == 'Orientation':
+                        if value == 3:
+                            img = img.rotate(180, expand=True)
+                        elif value == 6:
+                            img = img.rotate(270, expand=True)
+                        elif value == 8:
+                            img = img.rotate(90, expand=True)
+                        break
+        except Exception as exif_error:
+            logger.warning(f"EXIF processing failed (non-critical): {exif_error}")
+        
         # Convert to RGB for consistent processing across different client image formats
-        return Image.open(BytesIO(binary_data)).convert('RGB'), None
+        # This handles RGBA, CMYK, L (grayscale), and other formats
+        if img.mode != 'RGB':
+            if img.mode == 'RGBA':
+                # Create white background for transparent images
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[-1])  # Use alpha channel as mask
+                img = background
+            else:
+                img = img.convert('RGB')
+        
+        return img, None
+        
     except Exception as e:
-        return None, f"Error decoding base64 image data: {e}"
+        logger.error(f"Image decoding error: {e}")
+        return None, f"Error decoding image: {str(e)}. Please try a different image format or smaller file size."
 
 
 # --- Flask Routes ---
