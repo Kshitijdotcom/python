@@ -1368,6 +1368,62 @@
 
             // Reset enhancement buttons
             quickEnhanceButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Reset AI enhancement state
+            if (enhancementState.originalImage && enhancementState.enhancedImage) {
+                // Restore original image if AI enhancement was applied
+                mainEditorImage.src = enhancementState.originalImage;
+                
+                // Clear AI enhancement state
+                enhancementState.enhancedImage = null;
+                enhancementState.originalImage = null;
+                enhancementState.compareMode = false;
+                
+                // Hide enhancement controls
+                const enhancementControls = document.getElementById('enhancement-controls');
+                if (enhancementControls) {
+                    enhancementControls.style.display = 'none';
+                }
+                
+                // Hide enhancement status messages
+                hideEnhancementStatus();
+                hideEnhancementError();
+            }
+            
+            // Reset AI preset buttons to default (General)
+            const presetButtons = document.querySelectorAll('#preset-buttons .style-button');
+            presetButtons.forEach(btn => btn.classList.remove('active'));
+            const generalButton = document.querySelector('#preset-buttons .style-button[data-preset="general"]');
+            if (generalButton) {
+                generalButton.classList.add('active');
+                enhancementState.currentPreset = 'general';
+            }
+            
+            // Reset scale and strength to defaults
+            enhancementState.currentScale = 1;
+            enhancementState.currentStrength = 80;
+            
+            // Update scale and strength UI elements if they exist
+            const scaleButtons = document.querySelectorAll('#scale-buttons .style-button');
+            scaleButtons.forEach(btn => btn.classList.remove('active'));
+            const scale1Button = document.querySelector('#scale-buttons .style-button[data-scale="1"]');
+            if (scale1Button) {
+                scale1Button.classList.add('active');
+            }
+            
+            const strengthSlider = document.getElementById('strength');
+            if (strengthSlider) {
+                strengthSlider.value = 80;
+                const strengthDisplay = strengthSlider.closest('.slider-wrapper')?.querySelector('.value-display');
+                if (strengthDisplay) {
+                    strengthDisplay.textContent = '80%';
+                }
+            }
+            
+            // Update split view if active
+            if (splitViewActive) {
+                updateSplitView();
+            }
         }
         
         // Handles file upload
