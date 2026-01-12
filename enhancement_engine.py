@@ -275,9 +275,44 @@ class EnhancementEngine:
             image = enhancer.enhance(1.0 + (0.05 * strength))
         
         return image
+    
+    def _enhance_clarity(self, image: Image.Image, strength: float) -> Image.Image:
         """
         Enhanced clarity with advanced algorithms - IMPROVED VERSION
         """
+        # Step 1: Gentle auto color balance
+        image = ImageOps.autocontrast(image, cutoff=0.5)
+        
+        # Step 2: Conservative edge enhancement
+        if strength > 0.5:
+            edges = image.filter(ImageFilter.EDGE_ENHANCE)  # Less aggressive than EDGE_ENHANCE_MORE
+            image = Image.blend(image, edges, 0.15 * strength)  # Reduced from 0.3
+        
+        # Step 3: Moderate contrast (much less aggressive)
+        enhancer = ImageEnhance.Contrast(image)
+        image = enhancer.enhance(1.0 + (0.15 * strength))  # Reduced from 0.3
+        
+        # Step 4: Subtle color enhancement
+        enhancer = ImageEnhance.Color(image)
+        image = enhancer.enhance(1.0 + (0.12 * strength))  # Reduced from 0.25
+        
+        # Step 5: Gentle sharpening
+        enhancer = ImageEnhance.Sharpness(image)
+        image = enhancer.enhance(1.0 + (0.25 * strength))  # Reduced from 0.5
+        
+        # Step 6: Conservative unsharp mask
+        if strength > 0.6:
+            radius = 1.5  # Smaller radius
+            percent = int(100 * strength)  # Much lower percent
+            threshold = 4  # Higher threshold
+            image = image.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
+        
+        # Step 7: Minimal detail enhancement
+        if strength > 0.7:
+            detailed = image.filter(ImageFilter.DETAIL)
+            image = Image.blend(image, detailed, 0.2 * strength)  # Reduced from 0.4
+        
+        return image
         # Step 1: Gentle auto color balance
         image = ImageOps.autocontrast(image, cutoff=0.5)
         
