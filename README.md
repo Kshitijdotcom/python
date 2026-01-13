@@ -1,4 +1,4 @@
-# PhotoCrest - Professional AI-Powered Image Enhancement Platform
+# PhotoCrest - Professional AI-Powered Image Enhancement Platform (Updated 2025-01-13)
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
