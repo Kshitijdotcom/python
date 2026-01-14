@@ -135,21 +135,23 @@ class ImprovedEnhancementEngine:
         gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
         
         # Brightness (mean pixel value)
-        brightness = np.mean(gray) / 255.0
+        brightness = float(np.mean(gray) / 255.0)
         
         # Contrast (standard deviation)
-        contrast = np.std(gray) / 128.0
+        contrast = float(np.std(gray) / 128.0)
         
         # Sharpness (Laplacian variance)
         laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-        sharpness = laplacian.var() / 1000.0
+        sharpness = float(laplacian.var() / 1000.0)
         sharpness = min(sharpness, 1.0)  # Normalize
+        
+        needs_enhancement = brightness < 0.4 or contrast < 0.5 or sharpness < 0.3
         
         return {
             'brightness': round(brightness, 2),
             'contrast': round(contrast, 2),
             'sharpness': round(sharpness, 2),
-            'needs_enhancement': brightness < 0.4 or contrast < 0.5 or sharpness < 0.3
+            'needs_enhancement': 'yes' if needs_enhancement else 'no'
         }
 
     
