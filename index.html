@@ -1119,6 +1119,12 @@
         
         // Split View Functions
         function toggleSplitView(enable) {
+            // Don't allow split view if no image is loaded
+            if (enable && (!originalImageSrc || mainEditorImage.src.includes('placehold.co'))) {
+                console.log('Cannot enable split view: no image loaded');
+                return;
+            }
+            
             splitViewActive = enable;
             
             if (enable) {
@@ -1141,6 +1147,14 @@
         
         function updateSplitView() {
             if (!splitViewActive || !originalImageSrc) return;
+            
+            // Check if we have a valid image (not placeholder)
+            if (mainEditorImage.src.includes('placehold.co')) {
+                // No real image loaded, clear split view
+                splitOriginal.src = '';
+                splitEdited.src = '';
+                return;
+            }
             
             // Set original image (no filters, no AI enhancements)
             splitOriginal.src = originalImageSrc;
@@ -1698,6 +1712,15 @@
             
             // Clear original image source
             originalImageSrc = null;
+            
+            // Clear split view images immediately
+            splitOriginal.src = '';
+            splitEdited.src = '';
+            
+            // Ensure split view is disabled
+            if (splitViewActive) {
+                toggleSplitView(false);
+            }
             
             // Reset all adjustments
             resetAdjustments();
