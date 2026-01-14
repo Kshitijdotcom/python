@@ -513,7 +513,7 @@ def enhance_route():
         
         # Check image size to prevent memory issues on free tier
         width, height = img.size
-        max_pixels = 2000 * 2000  # Reduced to 4 megapixels for free tier
+        max_pixels = 1500 * 1500  # Conservative limit: 2.25 megapixels to prevent crashes
         
         # Resize if too large
         if width * height > max_pixels:
@@ -716,6 +716,28 @@ def clarity_route():
             'error': f'Server error: {str(e)}',
             'error_code': 'SERVER_ERROR'
         }), 500
+
+
+
+
+# Global error handler to ensure we always return JSON
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Catch all unhandled exceptions and return JSON"""
+    logger.error(f"Unhandled exception: {e}")
+    import traceback
+    traceback.print_exc()
+    
+    # Check if this is an API endpoint
+    if request.path.startswith('/enhance') or request.path.startswith('/clarity') or request.path.startswith('/apply_filter'):
+        return jsonify({
+            'success': False,
+            'error': f'Server error: {str(e)}',
+            'error_code': 'UNHANDLED_ERROR'
+        }), 500
+    
+    # For non-API endpoints, return HTML error
+    return f"<h1>Server Error</h1><p>{str(e)}</p>", 500
 
 
 if __name__ == '__main__':

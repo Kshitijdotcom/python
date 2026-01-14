@@ -2070,7 +2070,7 @@
                 let width = mainEditorImage.naturalWidth;
                 let height = mainEditorImage.naturalHeight;
                 
-                const maxDimension = 3000;
+                const maxDimension = 1500;  // Reduced to prevent server crashes
                 if (width > maxDimension || height > maxDimension) {
                     const scale = maxDimension / Math.max(width, height);
                     width = Math.floor(width * scale);
