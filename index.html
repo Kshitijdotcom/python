@@ -791,11 +791,17 @@
                     <!-- Quick Enhancement Buttons for Sharpening -->
                     <div class="control-group">
                         <label>Quick Enhancements</label>
-                        <div class="button-group" id="quick-enhance-buttons">
-                            <!-- This button mimics sharpening by boosting contrast and saturation -->
-                            <button class="style-button" data-enhance="sharpen">Sharpen / Detail</button>
-                            <button class="style-button" data-enhance="vibrant">Vibrant Pop</button>
-                            <button class="style-button" data-enhance="clarity" title="Click for quick clarity, double-click for advanced clarity">Clarity</button>
+                        <div class="button-group" id="quick-enhance-buttons" style="display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Enhanced Quick Enhancement Buttons - Larger and More Prominent -->
+                            <button class="style-button" data-enhance="sharpen" style="width: 100%; padding: 14px 20px; font-size: 0.9rem; font-weight: 600;">
+                                ✨ Sharpen / Detail
+                            </button>
+                            <button class="style-button" data-enhance="vibrant" style="width: 100%; padding: 14px 20px; font-size: 0.9rem; font-weight: 600;">
+                                🎨 Vibrant Pop
+                            </button>
+                            <button class="style-button" data-enhance="clarity" title="Click for quick clarity, double-click for advanced clarity" style="width: 100%; padding: 14px 20px; font-size: 0.9rem; font-weight: 600;">
+                                💎 Clarity
+                            </button>
                         </div>
                         <div style="font-size: 0.7rem; color: var(--color-text-dimmer); margin-top: 8px; opacity: 0.8;">
                             💡 Tip: Double-click Clarity for advanced server-side processing
@@ -1563,14 +1569,17 @@
             button.classList.add('active');
 
             if (type === 'sharpen') {
-                // Sharpen preset: High Contrast and Saturation boost mimics sharpness
-                applyFilterPreset(105, 125, 125, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
+                // Sharpen preset: Moderate sharpness with balanced enhancement
+                // Brightness: 102 (subtle lift), Contrast: 115 (moderate), Saturation: 108 (slight boost)
+                applyFilterPreset(102, 115, 108, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
             } else if (type === 'vibrant') {
-                // Vibrant preset: Slight boost to Brightness, Saturation, and a touch of Contrast
-                applyFilterPreset(110, 105, 150, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
+                // Vibrant preset: Punchy colors with balanced brightness
+                // Brightness: 105 (subtle), Contrast: 110 (moderate), Saturation: 140 (vibrant!)
+                applyFilterPreset(105, 110, 140, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
             } else if (type === 'clarity') {
-                // Clarity preset: Enhanced contrast and slight brightness boost for crisp look
-                applyFilterPreset(108, 130, 115, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
+                // Clarity preset: Clear and crisp without over-processing
+                // Brightness: 104 (subtle), Contrast: 118 (moderate), Saturation: 112 (slight boost)
+                applyFilterPreset(104, 118, 112, 0, 0, 0, 0, 0); // B, C, S, H, Gr, Sep, Inv, Blur
             }
             
             // Save to history after applying preset
@@ -1653,7 +1662,7 @@
             } catch (error) {
                 showEnhancementError(`Clarity enhancement failed: ${error.message}`);
                 // Fallback to CSS-only clarity
-                applyFilterPreset(108, 130, 115, 0, 0, 0, 0, 0);
+                applyFilterPreset(104, 118, 112, 0, 0, 0, 0, 0);
             } finally {
                 enhancementState.isProcessing = false;
                 clarityButton.disabled = false;
