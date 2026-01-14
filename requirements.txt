@@ -4,3 +4,5 @@ Flask-Login
 Flask-SQLAlchemy
 Werkzeug
 gunicorn
+opencv-python
+numpy

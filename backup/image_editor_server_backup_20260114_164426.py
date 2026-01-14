@@ -3,7 +3,7 @@ from io import BytesIO
 from flask import Flask, request, jsonify, send_file, render_template_string, redirect, url_for, session
 import base64
 import time
-from enhancement_engine_improved import get_improved_enhancement_engine as get_enhancement_engine
+from enhancement_engine import get_enhancement_engine
 import logging
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User
