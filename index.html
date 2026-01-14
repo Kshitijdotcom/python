@@ -896,9 +896,7 @@
                 </div>
             </div>
 
-            <!-- Download Button -->
-            <div style="padding: 24px 20px; border-top: 1px solid var(--color-border); background-color: var(--color-bg-secondary);">
-                <button id="download-button" class="upload-label" style="width: 100%;">Download</button>
+            <!-- Download and Delete Buttons -->`n            <div style="padding: 24px 20px; border-top: 1px solid var(--color-border); background-color: var(--color-bg-secondary);">`n                <button id="download-button" class="upload-label" style="width: 100%; margin-bottom: 12px;">Download</button>`n                <button id="delete-image-button" class="style-button" style="width: 100%; background: #e53935; border-color: #e53935; color: white; padding: 14px 28px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;"> Delete Image</button>
             </div>
             
         </div>
@@ -1689,6 +1687,48 @@
             link.href = renderCanvas.toDataURL('image/png');
             link.click();
         }
+        // Handles image deletion/clearing
+        function clearImage() {
+            // Reset to placeholder image
+            mainEditorImage.src = 'https://placehold.co/900x600/0a0a0a/666666?text=Drag+%26+Drop+an+Image+or+Click+to+Upload';
+            
+            // Clear original image source
+            originalImageSrc = null;
+            
+            // Reset all adjustments
+            resetAdjustments();
+            
+            // Clear history
+            historyManager.clearHistory();
+            
+            // Hide preview controls
+            hidePreviewControls();
+            
+            // Clear AI enhancement state
+            enhancementState.originalImage = null;
+            enhancementState.enhancedImage = null;
+            enhancementState.compareMode = false;
+            
+            // Hide enhancement controls
+            const enhancementControls = document.getElementById('enhancement-controls');
+            if (enhancementControls) {
+                enhancementControls.style.display = 'none';
+            }
+            
+            // Hide status messages
+            hideEnhancementStatus();
+            hideEnhancementError();
+            
+            // Show confirmation message
+            const container = document.getElementById('image-container');
+            const msg = document.createElement('div');
+            msg.textContent = ' Image deleted successfully';
+            msg.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--color-accent); color: var(--color-bg-primary); padding: 15px 25px; border-radius: 8px; z-index: 100; font-weight: bold; animation: fadeout 2s forwards;';
+            
+            container.appendChild(msg);
+            setTimeout(() => { msg.remove(); }, 2000);
+        }
+
 
         // --- AI ENHANCEMENT FUNCTIONS ---
         
