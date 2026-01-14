@@ -1686,7 +1686,8 @@
 
             // 5. Create a download link
             const link = document.createElement('a');
-            link.download = 'PhotoJS_Edited_Image.png';
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            link.download = `PhotoCrest_${timestamp}.png`;
             link.href = renderCanvas.toDataURL('image/png');
             link.click();
         }
