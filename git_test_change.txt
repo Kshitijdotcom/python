@@ -1,5 +1,0 @@
-This file is created to test Git change detection.
-Timestamp: 2025-01-13 15:00
-Changes made:
-1. Delete Photo button visibility fixed
-2. PhotoCrest download filename with timestamp
