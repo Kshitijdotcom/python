@@ -1737,6 +1737,14 @@
 
         // Handles image deletion/clearing
         function clearImage() {
+            // Force clear any processing state
+            enhancementState.isProcessing = false;
+            
+            // Force clear enhancement state immediately
+            enhancementState.originalImage = null;
+            enhancementState.enhancedImage = null;
+            enhancementState.compareMode = false;
+            
             // Reset to placeholder image
             mainEditorImage.src = 'https://placehold.co/900x600/0a0a0a/444444?text=Upload+Image';
             
@@ -1761,15 +1769,28 @@
             // Hide preview controls
             hidePreviewControls();
             
-            // Clear AI enhancement state
-            enhancementState.originalImage = null;
-            enhancementState.enhancedImage = null;
-            enhancementState.compareMode = false;
-            
             // Hide enhancement controls
             const enhancementControls = document.getElementById('enhancement-controls');
             if (enhancementControls) {
                 enhancementControls.style.display = 'none';
+            }
+            
+            // Re-enable all enhancement buttons
+            const enhanceButton = document.getElementById('ai-enhance-button');
+            const clarityButton = document.querySelector('[data-enhance="clarity"]');
+            const autoEnhanceButton = document.getElementById('auto-enhance-button');
+            
+            if (enhanceButton) {
+                enhanceButton.disabled = false;
+                enhanceButton.style.opacity = '1';
+            }
+            if (clarityButton) {
+                clarityButton.disabled = false;
+                clarityButton.style.opacity = '1';
+            }
+            if (autoEnhanceButton) {
+                autoEnhanceButton.disabled = false;
+                autoEnhanceButton.style.opacity = '1';
             }
             
             // Hide status messages
