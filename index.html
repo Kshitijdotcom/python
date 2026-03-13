@@ -719,6 +719,12 @@
                 <label for="image-upload" class="upload-label">
                     Upload Image
                 </label>
+                <div id="paste-hint" style="margin-top: 14px; color: var(--color-text-dimmer); font-size: 0.7rem; letter-spacing: 0.5px; opacity: 0.8;">
+                    Or paste image from clipboard (Ctrl+V / Cmd+V)
+                </div>
+                <button id="paste-button" class="upload-label" style="margin-top: 12px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); display: none;">
+                    📋 Paste from Clipboard
+                </button>
                 
                 <!-- Undo/Redo Controls -->
                 <div class="undo-redo-controls" style="display: flex; gap: 8px; margin-top: 16px;">
@@ -1467,8 +1473,7 @@
             }
         }
 
-        // Paste functionality removed - users must use Upload Image button only
-        /*
+        // Handles image pasting from clipboard
         function handlePaste(e) {
             console.log('Paste event triggered');
             
@@ -1496,6 +1501,9 @@
                     reader.onload = function(event) {
                         console.log('Image loaded from clipboard');
                         loadImage(event.target.result);
+                        originalImageSrc = event.target.result;
+                        showPreviewControls();
+                        historyManager.saveState('image_pasted');
                     };
                     reader.onerror = function(error) {
                         console.error('Error reading clipboard image:', error);
@@ -1506,7 +1514,6 @@
                 }
             }
         }
-        */
         
         // Common function to load image into editor
         function loadImage(imageUrl) {
@@ -1605,7 +1612,7 @@
             
             // Check if image is loaded
             if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
-                showEnhancementError('Please upload an image first!');
+                showEnhancementError('Please upload or paste an image first!');
                 return;
             }
             
@@ -1689,7 +1696,7 @@
                  // Use a custom alert message substitute
                  const container = document.getElementById('image-container');
                  const msg = document.createElement('div');
-                 msg.textContent = 'Please upload an image first!';
+                 msg.textContent = 'Please upload or paste an image first!';
                  msg.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #e53935; color: white; padding: 15px; border-radius: 8px; z-index: 100; font-weight: bold; animation: fadeout 3s forwards;';
                  
                  // Add a simple CSS animation for the message fade
@@ -1858,7 +1865,7 @@
             
             // Check if image is loaded
             if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
-                showEnhancementError('Please upload an image first!');
+                showEnhancementError('Please upload or paste an image first!');
                 return;
             }
             
@@ -2280,7 +2287,54 @@
                 }
             });
             
-            // Add focus listener (removed paste functionality)
+            // Paste listener for the entire document
+            document.addEventListener('paste', handlePaste);
+            
+            // Paste button for mobile/modern browsers with Clipboard API
+            const pasteButton = document.getElementById('paste-button');
+            
+            // Check if Clipboard API is available and show button on mobile
+            if (navigator.clipboard && navigator.clipboard.read) {
+                // Show paste button on mobile devices or if Clipboard API is available
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) {
+                    pasteButton.style.display = 'block';
+                }
+                
+                pasteButton.addEventListener('click', async () => {
+                    try {
+                        const clipboardItems = await navigator.clipboard.read();
+                        
+                        for (const clipboardItem of clipboardItems) {
+                            for (const type of clipboardItem.types) {
+                                if (type.startsWith('image/')) {
+                                    const blob = await clipboardItem.getType(type);
+                                    const reader = new FileReader();
+                                    
+                                    reader.onload = function(event) {
+                                        console.log('Image loaded from clipboard via API');
+                                        loadImage(event.target.result);
+                                        originalImageSrc = event.target.result;
+                                        showPreviewControls();
+                                        historyManager.saveState('image_pasted');
+                                    };
+                                    
+                                    reader.readAsDataURL(blob);
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to read clipboard:', err);
+                        alert('Unable to access clipboard. Please use Ctrl+V or upload an image instead.');
+                    }
+                });
+            }
+            
+            // Add focus listener to show paste is ready
+            document.addEventListener('focus', () => {
+                console.log('Document has focus - paste should work');
+            }, true);
             
             // Split View Event Listeners
             normalViewBtn.addEventListener('click', () => {
