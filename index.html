@@ -493,7 +493,7 @@
             position: relative;
             max-width: 100%;
             max-height: 100%;
-            width: 900px; /* Base size for editor frame */
+            width: 900px;
             height: 600px;
             display: flex;
             justify-content: center;
@@ -501,8 +501,8 @@
             background: radial-gradient(circle at center, #0f0f0f 0%, #0a0a0a 100%);
             border-radius: 12px;
             box-shadow: 0 24px 64px var(--color-shadow), 0 0 0 1px rgba(255, 255, 255, 0.05);
-            overflow: hidden;
-            transition: all 0.3s ease;
+            overflow: auto;
+            transition: box-shadow 0.3s ease;
         }
         
         #image-container:hover {
@@ -621,6 +621,7 @@
             /* This is the visible image element */
             width: 100%;
             height: 100%;
+            object-fit: contain;
             filter: 
                 brightness(var(--image-brightness)) 
                 contrast(var(--image-contrast)) 
@@ -631,6 +632,8 @@
                 invert(var(--image-invert))
                 blur(var(--image-blur));
             opacity: var(--image-opacity);
+            transition: width 0.2s ease, height 0.2s ease;
+            transform-origin: top left;
         }
 
         #original-image {
@@ -753,11 +756,6 @@
             min-width: 36px;
             text-align: center;
             letter-spacing: 0.5px;
-        }
-
-        #editor-image {
-            transform-origin: center center;
-            transition: transform 0.2s ease;
         }
 
         /* Responsive adjustments */
@@ -2020,8 +2018,11 @@
         // --- ZOOM FUNCTIONS ---
         function applyZoom(zoom) {
             currentZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
-            mainEditorImage.style.transform = `scale(${currentZoom})`;
-            document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+            const pct = Math.round(currentZoom * 100) + '%';
+            // Scale by changing width/height so image overflows and container scrolls
+            mainEditorImage.style.width = pct;
+            mainEditorImage.style.height = pct;
+            document.getElementById('zoom-level').textContent = pct;
         }
 
         function resetZoom() {
