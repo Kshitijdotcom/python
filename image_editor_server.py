@@ -740,6 +740,63 @@ def handle_exception(e):
     return f"<h1>Server Error</h1><p>{str(e)}</p>", 500
 
 
+
+
+@app.route('/noise_reduce', methods=['POST'])
+@login_required
+def noise_reduce_route():
+    """
+    AI-powered noise reduction for low-light and noisy images.
+    Accepts: image_data (base64), strength (0-100)
+    Returns: processed image as base64
+    """
+    try:
+        logger.info("Noise reduction request received")
+        data = request.json
+
+        if data is None:
+            return jsonify({'success': False, 'error': 'No JSON data received'}), 400
+
+        image_data = data.get('image_data')
+        strength = data.get('strength', 80)
+
+        if not image_data:
+            return jsonify({'success': False, 'error': 'Missing image data'}), 400
+
+        if not isinstance(strength, (int, float)) or not 0 <= strength <= 100:
+            return jsonify({'success': False, 'error': 'Invalid strength value'}), 400
+
+        img, error_message = decode_base64_image(image_data)
+        if error_message:
+            return jsonify({'success': False, 'error': error_message}), 400
+
+        # Resize if too large
+        width, height = img.size
+        max_pixels = 1500 * 1500
+        if width * height > max_pixels:
+            scale_factor = (max_pixels / (width * height)) ** 0.5
+            img = img.resize((int(width * scale_factor), int(height * scale_factor)), Image.Resampling.LANCZOS)
+
+        engine = get_enhancement_engine()
+        factor = strength / 100.0
+        processed_img = engine._reduce_noise(img, factor)
+
+        buffer = BytesIO()
+        processed_img.save(buffer, format="JPEG", quality=95, optimize=True)
+        result_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        del img
+        del processed_img
+        buffer.close()
+
+        logger.info("Noise reduction complete")
+        return jsonify({'success': True, 'processed_image_base64': result_base64})
+
+    except Exception as e:
+        logger.error(f"Noise reduction error: {e}")
+        return jsonify({'success': False, 'error': f'Server error: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
     # host='0.0.0.0' allows access from any device on your network
     # For public access, consider using ngrok or deploying to a cloud service

@@ -660,6 +660,106 @@
             animation: fadeIn 0.3s ease-out;
         }
 
+        /* Loading Skeleton */
+        @keyframes shimmer {
+            0% { background-position: -900px 0; }
+            100% { background-position: 900px 0; }
+        }
+
+        #loading-skeleton {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #111;
+        }
+
+        #loading-skeleton.active {
+            display: block;
+        }
+
+        .skeleton-shimmer {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+            background-size: 900px 100%;
+            animation: shimmer 1.6s infinite linear;
+        }
+
+        .skeleton-label {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--color-accent);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .skeleton-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--color-accent);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Zoom Controls */
+        #zoom-controls {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 20;
+            background: rgba(10,10,10,0.85);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 6px 10px;
+        }
+
+        .zoom-btn {
+            background: none;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-light);
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        #zoom-level {
+            font-size: 0.75rem;
+            color: var(--color-text-dim);
+            min-width: 36px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        #editor-image {
+            transform-origin: center center;
+            transition: transform 0.2s ease;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .editor-layout {
@@ -886,6 +986,9 @@
                         <button id="ai-enhance-button" class="upload-label" style="width: 100%; margin-bottom: 10px;">
                             AI Enhance (Manual)
                         </button>
+                        <button id="noise-reduce-button" class="upload-label" style="width: 100%; margin-bottom: 10px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border);">
+                            Noise Reduction
+                        </button>
                         <div id="enhancement-status" style="display: none; text-align: center; color: var(--color-accent); font-size: 0.9rem; margin-top: 10px;">
                             <div class="spinner" style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--color-accent); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                             <span id="status-text" style="margin-left: 8px;">Processing...</span>
@@ -924,6 +1027,23 @@
 
             <!-- This container holds the image and applies CSS filters -->
             <div id="image-container">
+                <!-- Loading Skeleton -->
+                <div id="loading-skeleton">
+                    <div class="skeleton-shimmer"></div>
+                    <div class="skeleton-label">
+                        <div class="skeleton-spinner"></div>
+                        <span id="skeleton-text">Processing...</span>
+                    </div>
+                </div>
+
+                <!-- Zoom Controls -->
+                <div id="zoom-controls">
+                    <button class="zoom-btn" id="zoom-out-btn" title="Zoom Out">-</button>
+                    <span id="zoom-level">100%</span>
+                    <button class="zoom-btn" id="zoom-in-btn" title="Zoom In">+</button>
+                    <button class="zoom-btn" id="zoom-reset-btn" title="Reset Zoom" style="font-size:0.65rem; width:36px;">Reset</button>
+                </div>
+
                 <!-- Normal View (default) -->
                 <img id="editor-image" alt="Image being edited" 
                     src="https://placehold.co/900x600/0a0a0a/444444?text=Upload+Image">
@@ -950,6 +1070,12 @@
         let originalStyles = {};
         const mainEditorImage = document.getElementById('editor-image');
         const renderCanvas = document.getElementById('render-canvas');
+
+        // Zoom State
+        let currentZoom = 1.0;
+        const ZOOM_STEP = 0.25;
+        const ZOOM_MIN = 0.5;
+        const ZOOM_MAX = 4.0;
         const inputs = document.querySelectorAll('input[type="range"]'); 
         const quickEnhanceButtons = document.querySelectorAll('#quick-enhance-buttons .style-button');
         
@@ -1523,6 +1649,9 @@
             // Reset all adjustments upon new image load
             resetAdjustments();
             
+            // Reset zoom on new image
+            resetZoom();
+            
             // Clear history for new image
             historyManager.clearHistory();
             
@@ -1864,10 +1993,39 @@
             statusText.textContent = message;
             statusDiv.style.display = 'block';
             document.getElementById('enhancement-error').style.display = 'none';
+            // Show skeleton overlay
+            showSkeleton(message);
         }
         
         function hideEnhancementStatus() {
             document.getElementById('enhancement-status').style.display = 'none';
+            hideSkeleton();
+        }
+
+        // --- SKELETON FUNCTIONS ---
+        function showSkeleton(message) {
+            const skeleton = document.getElementById('loading-skeleton');
+            const skeletonText = document.getElementById('skeleton-text');
+            if (skeleton) {
+                skeletonText.textContent = message || 'Processing...';
+                skeleton.classList.add('active');
+            }
+        }
+
+        function hideSkeleton() {
+            const skeleton = document.getElementById('loading-skeleton');
+            if (skeleton) skeleton.classList.remove('active');
+        }
+
+        // --- ZOOM FUNCTIONS ---
+        function applyZoom(zoom) {
+            currentZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
+            mainEditorImage.style.transform = `scale(${currentZoom})`;
+            document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        function resetZoom() {
+            applyZoom(1.0);
         }
         
         function showEnhancementError(message) {
@@ -1997,6 +2155,68 @@
             document.getElementById('enhancement-controls').style.display = 'none';
             hideEnhancementStatus();
             hideEnhancementError();
+        }
+
+        // --- NOISE REDUCTION ---
+        async function handleNoiseReduction() {
+            if (enhancementState.isProcessing) return;
+
+            if (!mainEditorImage.src || mainEditorImage.src.includes('placehold.co')) {
+                showEnhancementError('Please upload an image first!');
+                return;
+            }
+
+            enhancementState.isProcessing = true;
+            const noiseBtn = document.getElementById('noise-reduce-button');
+            noiseBtn.disabled = true;
+            noiseBtn.style.opacity = '0.5';
+
+            showEnhancementStatus('Reducing noise...');
+
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = mainEditorImage.naturalWidth;
+                canvas.height = mainEditorImage.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.filter = mainEditorImage.style.filter || 'none';
+                ctx.drawImage(mainEditorImage, 0, 0);
+                const imageData = canvas.toDataURL('image/jpeg', 0.92);
+
+                const response = await fetch('/noise_reduce', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_data: imageData, strength: 80 })
+                });
+
+                let result;
+                const responseText = await response.text();
+                try { result = JSON.parse(responseText); }
+                catch (e) { throw new Error('Invalid server response'); }
+
+                if (!result.success) throw new Error(result.error || 'Noise reduction failed');
+
+                // Save original before applying
+                if (!enhancementState.originalImage) {
+                    enhancementState.originalImage = mainEditorImage.src;
+                }
+
+                const reducedImageData = 'data:image/jpeg;base64,' + result.processed_image_base64;
+                enhancementState.enhancedImage = reducedImageData;
+                mainEditorImage.src = reducedImageData;
+
+                document.getElementById('enhancement-controls').style.display = 'block';
+                hideEnhancementStatus();
+
+                if (splitViewActive) updateSplitView();
+
+            } catch (error) {
+                showEnhancementError(`Noise reduction failed: ${error.message}`);
+                hideEnhancementStatus();
+            } finally {
+                enhancementState.isProcessing = false;
+                noiseBtn.disabled = false;
+                noiseBtn.style.opacity = '1';
+            }
         }
         
         // Auto Adjust - Automatically adjusts brightness, contrast, saturation based on image analysis
@@ -2416,8 +2636,22 @@
             document.getElementById('auto-adjust-button').addEventListener('click', handleAutoAdjust);
             document.getElementById('auto-enhance-button').addEventListener('click', handleAutoEnhance);
             document.getElementById('ai-enhance-button').addEventListener('click', handleAIEnhance);
+            document.getElementById('noise-reduce-button').addEventListener('click', handleNoiseReduction);
             document.getElementById('compare-button').addEventListener('click', handleCompareToggle);
             document.getElementById('undo-enhancement-button').addEventListener('click', handleUndoEnhancement);
+
+            // Zoom controls
+            document.getElementById('zoom-in-btn').addEventListener('click', () => applyZoom(currentZoom + ZOOM_STEP));
+            document.getElementById('zoom-out-btn').addEventListener('click', () => applyZoom(currentZoom - ZOOM_STEP));
+            document.getElementById('zoom-reset-btn').addEventListener('click', resetZoom);
+
+            // Mouse wheel zoom on image container
+            document.getElementById('image-container').addEventListener('wheel', (e) => {
+                if (!originalImageSrc) return;
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+                applyZoom(currentZoom + delta);
+            }, { passive: false });
             
             // Initial setup to ensure the UI starts with the first section expanded
             toggleSection('basic-adjustments');
