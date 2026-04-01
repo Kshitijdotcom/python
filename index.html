@@ -610,8 +610,6 @@
         }
 
         #editor-image, #original-image {
-            max-width: 100%;
-            max-height: 100%;
             object-fit: contain;
             user-select: none;
             transition: filter 0.1s;
@@ -619,8 +617,8 @@
         
         #editor-image {
             /* This is the visible image element */
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
             filter: 
                 brightness(var(--image-brightness)) 
@@ -632,8 +630,8 @@
                 invert(var(--image-invert))
                 blur(var(--image-blur));
             opacity: var(--image-opacity);
-            transition: width 0.2s ease, height 0.2s ease;
-            transform-origin: top left;
+            transition: transform 0.2s ease;
+            transform-origin: center center;
         }
 
         #original-image {
@@ -2019,13 +2017,23 @@
         function applyZoom(zoom) {
             currentZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
             const pct = Math.round(currentZoom * 100) + '%';
-            // Scale by changing width/height so image overflows and container scrolls
-            mainEditorImage.style.width = pct;
-            mainEditorImage.style.height = pct;
+            const container = document.getElementById('image-container');
+            // Use transform: scale for smooth zoom; adjust container scroll area via padding trick
+            mainEditorImage.style.transform = `scale(${currentZoom})`;
+            mainEditorImage.style.transformOrigin = 'center center';
+            // Expand a wrapper margin so the container can scroll when zoomed in
+            const naturalW = mainEditorImage.naturalWidth || mainEditorImage.offsetWidth;
+            const naturalH = mainEditorImage.naturalHeight || mainEditorImage.offsetHeight;
+            const scaledW = naturalW * currentZoom;
+            const scaledH = naturalH * currentZoom;
+            const padH = Math.max(0, (scaledW - container.clientWidth) / 2);
+            const padV = Math.max(0, (scaledH - container.clientHeight) / 2);
+            mainEditorImage.style.margin = `${padV}px ${padH}px`;
             document.getElementById('zoom-level').textContent = pct;
         }
 
         function resetZoom() {
+            mainEditorImage.style.margin = '';
             applyZoom(1.0);
         }
         
