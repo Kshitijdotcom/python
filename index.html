@@ -713,6 +713,13 @@
             animation: spin 0.8s linear infinite;
         }
 
+        /* Zoom Wrapper */
+        #zoom-wrapper {
+            display: contents; /* transparent by default, becomes a real block when zoomed */
+            transform-origin: center center;
+            transition: transform 0.2s ease;
+        }
+
         /* Zoom Controls */
         #zoom-controls {
             position: absolute;
@@ -1040,18 +1047,21 @@
                     <button class="zoom-btn" id="zoom-reset-btn" title="Reset Zoom" style="font-size:0.65rem; width:36px;">Reset</button>
                 </div>
 
-                <!-- Normal View (default) -->
-                <img id="editor-image" alt="Image being edited" 
-                    src="https://placehold.co/900x600/0a0a0a/444444?text=Upload+Image">
-                
-                <!-- Split View Container -->
-                <div class="split-view-container" id="split-view-container">
-                    <img class="split-image original" id="split-original" alt="Original image">
-                    <img class="split-image edited" id="split-edited" alt="Edited image">
-                    <div class="split-slider" id="split-slider"></div>
-                    <div class="split-labels">
-                        <span class="split-label original">Original</span>
-                        <span class="split-label edited">Edited</span>
+                <!-- Zoom Wrapper — scale this for zoom to work in all view modes -->
+                <div id="zoom-wrapper">
+                    <!-- Normal View (default) -->
+                    <img id="editor-image" alt="Image being edited" 
+                        src="https://placehold.co/900x600/0a0a0a/444444?text=Upload+Image">
+                    
+                    <!-- Split View Container -->
+                    <div class="split-view-container" id="split-view-container">
+                        <img class="split-image original" id="split-original" alt="Original image">
+                        <img class="split-image edited" id="split-edited" alt="Edited image">
+                        <div class="split-slider" id="split-slider"></div>
+                        <div class="split-labels">
+                            <span class="split-label original">Original</span>
+                            <span class="split-label edited">Edited</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -2017,24 +2027,32 @@
         function applyZoom(zoom) {
             currentZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom));
             const pct = Math.round(currentZoom * 100) + '%';
+            const wrapper = document.getElementById('zoom-wrapper');
             const container = document.getElementById('image-container');
-            // Use transform: scale for smooth zoom; adjust container scroll area via padding trick
-            mainEditorImage.style.transform = `scale(${currentZoom})`;
-            mainEditorImage.style.transformOrigin = 'center center';
-            // Expand a wrapper margin so the container can scroll when zoomed in
-            const naturalW = mainEditorImage.naturalWidth || mainEditorImage.offsetWidth;
-            const naturalH = mainEditorImage.naturalHeight || mainEditorImage.offsetHeight;
-            const scaledW = naturalW * currentZoom;
-            const scaledH = naturalH * currentZoom;
-            const padH = Math.max(0, (scaledW - container.clientWidth) / 2);
-            const padV = Math.max(0, (scaledH - container.clientHeight) / 2);
-            mainEditorImage.style.margin = `${padV}px ${padH}px`;
+
+            if (currentZoom === 1.0) {
+                wrapper.style.transform = '';
+                wrapper.style.display = 'contents';
+                container.style.overflow = 'hidden';
+            } else {
+                // Switch wrapper to a real block so transform works
+                wrapper.style.display = 'inline-block';
+                wrapper.style.transform = `scale(${currentZoom})`;
+                wrapper.style.transformOrigin = 'center center';
+                container.style.overflow = 'auto';
+            }
+
             document.getElementById('zoom-level').textContent = pct;
         }
 
         function resetZoom() {
-            mainEditorImage.style.margin = '';
-            applyZoom(1.0);
+            currentZoom = 1.0;
+            const wrapper = document.getElementById('zoom-wrapper');
+            const container = document.getElementById('image-container');
+            wrapper.style.transform = '';
+            wrapper.style.display = 'contents';
+            container.style.overflow = 'hidden';
+            document.getElementById('zoom-level').textContent = '100%';
         }
         
         function showEnhancementError(message) {
