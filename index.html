@@ -715,7 +715,12 @@
 
         /* Zoom Wrapper */
         #zoom-wrapper {
-            display: contents; /* transparent by default, becomes a real block when zoomed */
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transform-origin: center center;
             transition: transform 0.2s ease;
         }
@@ -1048,7 +1053,7 @@
                 </div>
 
                 <!-- Zoom Wrapper — scale this for zoom to work in all view modes -->
-                <div id="zoom-wrapper">
+                <div id="zoom-wrapper" style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
                     <!-- Normal View (default) -->
                     <img id="editor-image" alt="Image being edited" 
                         src="https://placehold.co/900x600/0a0a0a/444444?text=Upload+Image">
@@ -2029,19 +2034,8 @@
             const pct = Math.round(currentZoom * 100) + '%';
             const wrapper = document.getElementById('zoom-wrapper');
             const container = document.getElementById('image-container');
-
-            if (currentZoom === 1.0) {
-                wrapper.style.transform = '';
-                wrapper.style.display = 'contents';
-                container.style.overflow = 'hidden';
-            } else {
-                // Switch wrapper to a real block so transform works
-                wrapper.style.display = 'inline-block';
-                wrapper.style.transform = `scale(${currentZoom})`;
-                wrapper.style.transformOrigin = 'center center';
-                container.style.overflow = 'auto';
-            }
-
+            wrapper.style.transform = `scale(${currentZoom})`;
+            container.style.overflow = currentZoom > 1 ? 'auto' : 'hidden';
             document.getElementById('zoom-level').textContent = pct;
         }
 
@@ -2049,8 +2043,7 @@
             currentZoom = 1.0;
             const wrapper = document.getElementById('zoom-wrapper');
             const container = document.getElementById('image-container');
-            wrapper.style.transform = '';
-            wrapper.style.display = 'contents';
+            wrapper.style.transform = 'scale(1)';
             container.style.overflow = 'hidden';
             document.getElementById('zoom-level').textContent = '100%';
         }
